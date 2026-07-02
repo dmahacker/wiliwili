@@ -4,11 +4,15 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include <borealis/core/bind.hpp>
 #include <borealis/core/box.hpp>
 #include <borealis/core/application.hpp>
 
 #include "utils/event_helper.hpp"
+#include "utils/shortcut_helper.hpp"
 
 namespace brls {
 class Label;
@@ -304,6 +308,7 @@ private:
     CustomEvent::Subscription customEventSubscribeID;
     std::function<void()> customToggleAction = nullptr;
     brls::ActionListener seasonAction = nullptr;
+    std::vector<std::unique_ptr<ShortcutHelper::ShortcutRegistration>> commonShortcutRegistrations;
     brls::InputManager* input;
     NVGcolor bottomBarColor = brls::Application::getTheme().getColor("color/bilibili");
 
