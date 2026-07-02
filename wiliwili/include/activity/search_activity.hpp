@@ -4,10 +4,13 @@
 
 #pragma once
 
+#include <memory>
+
 #include <borealis/core/activity.hpp>
 #include <borealis/core/bind.hpp>
 
 #include "fragment/search_interface.hpp"
+#include "utils/shortcut_helper.hpp"
 
 namespace brls {
 class Label;
@@ -42,4 +45,5 @@ private:
     void search(const std::string &key);
 
     UpdateSearchEvent updateSearchEvent;
+    std::unique_ptr<ShortcutHelper::ShortcutRegistration> searchShortcutRegistration;
 };

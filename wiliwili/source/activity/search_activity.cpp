@@ -36,10 +36,12 @@ void SearchActivity::onContentAvailable() {
         return true;
     });
 
-    this->registerAction(ShortcutHelper::getSearch(), [openText](brls::View* view) {
-        openText();
-        return true;
-    });
+    this->searchShortcutRegistration = ShortcutHelper::registerAction(
+        ShortcutAction::Search, this,
+        [openText](brls::View* view) {
+            openText();
+            return true;
+        });
 
     this->searchBox->addGestureRecognizer(new brls::TapGestureRecognizer(this->searchBox, openText));
 
