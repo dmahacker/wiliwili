@@ -4,10 +4,14 @@
 
 #include "utils/shortcut_helper.hpp"
 
+#include <algorithm>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 #include <pystring.h>
 
 #include "borealis/core/logger.hpp"
+#include "borealis/core/view.hpp"
 
 static std::unordered_map<std::string, brls::BrlsKeyboardModifiers> modifierMap = {
     {"shift", brls::BRLS_KBD_MODIFIER_SHIFT},
@@ -80,6 +84,190 @@ static std::unordered_map<std::string, brls::BrlsKeyboardScancode> functionMap =
     {"]", brls::BRLS_KBD_KEY_RIGHT_BRACKET},
 };
 
+static std::string keyDisplayName(brls::BrlsKeyboardScancode code) {
+    if (code >= brls::BRLS_KBD_KEY_0 && code <= brls::BRLS_KBD_KEY_9) {
+        return std::string(1, static_cast<char>('0' + code - brls::BRLS_KBD_KEY_0));
+    }
+    if (code >= brls::BRLS_KBD_KEY_A && code <= brls::BRLS_KBD_KEY_Z) {
+        return std::string(1, static_cast<char>('A' + code - brls::BRLS_KBD_KEY_A));
+    }
+    if (code >= brls::BRLS_KBD_KEY_F1 && code <= brls::BRLS_KBD_KEY_F24) {
+        return "F" + std::to_string(code - brls::BRLS_KBD_KEY_F1 + 1);
+    }
+
+    switch (code) {
+        case brls::BRLS_KBD_KEY_TAB:
+            return "Tab";
+        case brls::BRLS_KBD_KEY_BACKSPACE:
+            return "Backspace";
+        case brls::BRLS_KBD_KEY_INSERT:
+            return "Insert";
+        case brls::BRLS_KBD_KEY_DELETE:
+            return "Delete";
+        case brls::BRLS_KBD_KEY_PAGE_UP:
+            return "Page Up";
+        case brls::BRLS_KBD_KEY_PAGE_DOWN:
+            return "Page Down";
+        case brls::BRLS_KBD_KEY_HOME:
+            return "Home";
+        case brls::BRLS_KBD_KEY_END:
+            return "End";
+        case brls::BRLS_KBD_KEY_UP:
+            return "Up";
+        case brls::BRLS_KBD_KEY_DOWN:
+            return "Down";
+        case brls::BRLS_KBD_KEY_LEFT:
+            return "Left";
+        case brls::BRLS_KBD_KEY_RIGHT:
+            return "Right";
+        case brls::BRLS_KBD_KEY_PAUSE:
+            return "Pause";
+        case brls::BRLS_KBD_KEY_MENU:
+            return "Menu";
+        case brls::BRLS_KBD_KEY_SPACE:
+            return "Space";
+        case brls::BRLS_KBD_KEY_APOSTROPHE:
+            return "'";
+        case brls::BRLS_KBD_KEY_COMMA:
+            return ",";
+        case brls::BRLS_KBD_KEY_MINUS:
+            return "-";
+        case brls::BRLS_KBD_KEY_PERIOD:
+            return ".";
+        case brls::BRLS_KBD_KEY_SLASH:
+            return "/";
+        case brls::BRLS_KBD_KEY_BACKSLASH:
+            return "\\";
+        case brls::BRLS_KBD_KEY_SEMICOLON:
+            return ";";
+        case brls::BRLS_KBD_KEY_EQUAL:
+            return "=";
+        case brls::BRLS_KBD_KEY_GRAVE_ACCENT:
+            return "`";
+        case brls::BRLS_KBD_KEY_LEFT_BRACKET:
+            return "[";
+        case brls::BRLS_KBD_KEY_RIGHT_BRACKET:
+            return "]";
+        default:
+            return {};
+    }
+}
+
+static void appendDisplayPart(std::string& display, const std::string& part) {
+    if (!display.empty()) display += "+";
+    display += part;
+}
+
+static std::string formatKeyboardBinding(const brls::BrlsKeyCombination& key) {
+    std::string display;
+    if (key.mod & brls::BRLS_KBD_MODIFIER_CTRL) appendDisplayPart(display, "Ctrl");
+    if (key.mod & brls::BRLS_KBD_MODIFIER_ALT) appendDisplayPart(display, "Alt");
+    if (key.mod & brls::BRLS_KBD_MODIFIER_SHIFT) appendDisplayPart(display, "Shift");
+    if (key.mod & brls::BRLS_KBD_MODIFIER_META) appendDisplayPart(display, "Meta");
+
+    const std::string keyName = keyDisplayName(key.code);
+    if (keyName.empty()) return {};
+    appendDisplayPart(display, keyName);
+    return display;
+}
+
+static void appendConfigPart(std::string& config, const std::string& part) {
+    if (!config.empty()) config += "-";
+    config += part;
+}
+
+static std::string keyConfigName(const brls::BrlsKeyCombination& key) {
+    std::string keyName = keyDisplayName(key.code);
+    if (keyName == "Page Up") return "pgup";
+    if (keyName == "Page Down") return "pgdn";
+    return pystring::lower(keyName);
+}
+
+static brls::BrlsKeyCombination currentShortcut(ShortcutAction action) {
+    switch (action) {
+        case ShortcutAction::Refresh:
+            return ShortcutHelper::getRefresh();
+        case ShortcutAction::Search:
+            return ShortcutHelper::getSearch();
+        case ShortcutAction::Last:
+            return ShortcutHelper::getLast();
+        case ShortcutAction::Next:
+            return ShortcutHelper::getNext();
+        case ShortcutAction::LastSub:
+            return ShortcutHelper::getLastSub();
+        case ShortcutAction::NextSub:
+            return ShortcutHelper::getNextSub();
+        case ShortcutAction::VolumeUp:
+            return ShortcutHelper::getVolumeUp();
+        case ShortcutAction::VolumeDown:
+            return ShortcutHelper::getVolumeDown();
+        case ShortcutAction::VideoProfile:
+            return ShortcutHelper::getVideoProfile();
+        case ShortcutAction::Danmaku:
+            return ShortcutHelper::getDanmaku();
+        case ShortcutAction::Playlist:
+            return ShortcutHelper::getPlaylist();
+        case ShortcutAction::Forward:
+            return ShortcutHelper::getForward();
+        case ShortcutAction::Rewind:
+            return ShortcutHelper::getRewind();
+        case ShortcutAction::Setting:
+            return ShortcutHelper::getSetting();
+        case ShortcutAction::VideoQuality:
+            return ShortcutHelper::getVideoQuality();
+        case ShortcutAction::VideoSpeed:
+            return ShortcutHelper::getVideoSpeed();
+        case ShortcutAction::VideoSpeedUp:
+            return ShortcutHelper::getVideoSpeedUp();
+        case ShortcutAction::VideoOsd:
+            return ShortcutHelper::getVideoOsd();
+        case ShortcutAction::VideoPause:
+            return ShortcutHelper::getVideoPause();
+    }
+    return {brls::BRLS_KBD_KEY_UNKNOWN};
+}
+
+static std::vector<ShortcutHelper::ShortcutRegistration*>& dynamicRegistrations(ShortcutAction action) {
+    static std::unordered_map<ShortcutAction, std::vector<ShortcutHelper::ShortcutRegistration*>> registrations;
+    return registrations[action];
+}
+
+static void refreshDynamicRegistrations(ShortcutAction action) {
+    for (auto* registration : dynamicRegistrations(action)) registration->refresh();
+}
+
+ShortcutHelper::ShortcutRegistration::ShortcutRegistration(ShortcutAction action, brls::View* view,
+                                                          brls::ActionListener listener, bool allowRepeating)
+    : action(action), view(view), listener(std::move(listener)), allowRepeating(allowRepeating) {
+    dynamicRegistrations(action).push_back(this);
+    this->refresh();
+}
+
+ShortcutHelper::ShortcutRegistration::~ShortcutRegistration() {
+    if (this->view && this->actionIdentifier != -1) this->view->unregisterAction(this->actionIdentifier);
+
+    auto& registrations = dynamicRegistrations(this->action);
+    registrations.erase(std::remove(registrations.begin(), registrations.end(), this), registrations.end());
+}
+
+void ShortcutHelper::ShortcutRegistration::refresh() {
+    if (!this->view) return;
+    if (this->actionIdentifier != -1) this->view->unregisterAction(this->actionIdentifier);
+
+    const auto key = currentShortcut(this->action);
+    if (key.code == brls::BRLS_KBD_KEY_UNKNOWN) {
+        this->actionIdentifier = -1;
+        return;
+    }
+
+    this->actionIdentifier = this->view->registerAction(key, this->listener, this->allowRepeating);
+}
+
+std::unique_ptr<ShortcutHelper::ShortcutRegistration> ShortcutHelper::registerAction(
+    ShortcutAction action, brls::View* view, brls::ActionListener listener, bool allowRepeating) {
+    return std::make_unique<ShortcutRegistration>(action, view, std::move(listener), allowRepeating);
+}
+
 brls::BrlsKeyCombination ShortcutHelper::parseKey(const std::string& config) {
     std::vector<std::string> keys;
     if (pystring::endswith(config, "-")) {
@@ -126,4 +314,139 @@ brls::BrlsKeyCombination ShortcutHelper::parseKey(const std::string& config) {
     }
 
     return res;
+}
+
+std::string ShortcutBinding::format() const { return ShortcutHelper::formatBinding(*this); }
+
+ShortcutBinding ShortcutHelper::parseBinding(const std::string& config) {
+    ShortcutBinding binding;
+    binding.key = parseKey(config);
+    if (binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN) return binding;
+
+    binding.device = ShortcutDevice::Keyboard;
+    binding.display = formatKeyboardBinding(binding.key);
+    return binding;
+}
+
+std::string ShortcutHelper::gamepadButtonDisplayName(int button) {
+    if (button == brls::ControllerButton::BUTTON_A) return "A";
+    if (button == brls::ControllerButton::BUTTON_B) return "B";
+    if (button == brls::ControllerButton::BUTTON_X) return "X";
+    if (button == brls::ControllerButton::BUTTON_Y) return "Y";
+    if (button == brls::ControllerButton::BUTTON_LB) return "LB";
+    if (button == brls::ControllerButton::BUTTON_RB) return "RB";
+    if (button == brls::ControllerButton::BUTTON_LT) return "LT";
+    if (button == brls::ControllerButton::BUTTON_RT) return "RT";
+    if (button == brls::ControllerButton::BUTTON_START) return "Start";
+    if (button == brls::ControllerButton::BUTTON_BACK) return "Back";
+    if (button == brls::ControllerButton::BUTTON_LEFT || button == brls::ControllerButton::BUTTON_NAV_LEFT) return "Left";
+    if (button == brls::ControllerButton::BUTTON_RIGHT || button == brls::ControllerButton::BUTTON_NAV_RIGHT) return "Right";
+    if (button == brls::ControllerButton::BUTTON_NAV_UP) return "Up";
+    if (button == brls::ControllerButton::BUTTON_NAV_DOWN) return "Down";
+    return {};
+}
+
+ShortcutBinding ShortcutHelper::gamepadBinding(int button) {
+    ShortcutBinding binding;
+    binding.display = gamepadButtonDisplayName(button);
+    if (binding.display.empty()) return binding;
+
+    binding.device = ShortcutDevice::Gamepad;
+    binding.nativeCode = button;
+    return binding;
+}
+
+std::string ShortcutHelper::formatBinding(const ShortcutBinding& binding) {
+    if (binding.device == ShortcutDevice::Keyboard) {
+        const std::string display = formatKeyboardBinding(binding.key);
+        if (!display.empty()) return display;
+    }
+    return binding.display;
+}
+
+std::string ShortcutHelper::bindingConfigKey(const ShortcutBinding& binding) {
+    if (binding.device != ShortcutDevice::Keyboard) return {};
+
+    std::string config;
+    if (binding.key.mod & brls::BRLS_KBD_MODIFIER_CTRL) appendConfigPart(config, "ctrl");
+    if (binding.key.mod & brls::BRLS_KBD_MODIFIER_ALT) appendConfigPart(config, "alt");
+    if (binding.key.mod & brls::BRLS_KBD_MODIFIER_SHIFT) appendConfigPart(config, "shift");
+    if (binding.key.mod & brls::BRLS_KBD_MODIFIER_META) appendConfigPart(config, "meta");
+
+    const std::string keyName = keyConfigName(binding.key);
+    if (keyName.empty()) return {};
+    appendConfigPart(config, keyName);
+    return config;
+}
+
+brls::BrlsKeyCombination ShortcutHelper::toBrlsKeyCombination(const ShortcutBinding& binding) {
+    if (binding.device == ShortcutDevice::Keyboard) return binding.key;
+    return {brls::BRLS_KBD_KEY_UNKNOWN};
+}
+
+bool ShortcutHelper::applyBinding(ShortcutAction action, const ShortcutBinding& binding) {
+    const std::string config = bindingConfigKey(binding);
+    if (config.empty()) return false;
+
+    switch (action) {
+        case ShortcutAction::Refresh:
+            setRefresh(config);
+            break;
+        case ShortcutAction::Search:
+            setSearch(config);
+            break;
+        case ShortcutAction::Last:
+            setLast(config);
+            break;
+        case ShortcutAction::Next:
+            setNext(config);
+            break;
+        case ShortcutAction::LastSub:
+            setLastSub(config);
+            break;
+        case ShortcutAction::NextSub:
+            setNextSub(config);
+            break;
+        case ShortcutAction::VolumeUp:
+            setVolumeUp(config);
+            break;
+        case ShortcutAction::VolumeDown:
+            setVolumeDown(config);
+            break;
+        case ShortcutAction::VideoProfile:
+            setVideoProfile(config);
+            break;
+        case ShortcutAction::Danmaku:
+            setDanmaku(config);
+            break;
+        case ShortcutAction::Playlist:
+            setPlaylist(config);
+            break;
+        case ShortcutAction::Forward:
+            setForward(config);
+            break;
+        case ShortcutAction::Rewind:
+            setRewind(config);
+            break;
+        case ShortcutAction::Setting:
+            setSetting(config);
+            break;
+        case ShortcutAction::VideoQuality:
+            setVideoQuality(config);
+            break;
+        case ShortcutAction::VideoSpeed:
+            setVideoSpeed(config);
+            break;
+        case ShortcutAction::VideoSpeedUp:
+            setVideoSpeedUp(config);
+            break;
+        case ShortcutAction::VideoOsd:
+            setVideoOsd(config);
+            break;
+        case ShortcutAction::VideoPause:
+            setVideoPause(config);
+            break;
+    }
+    refreshDynamicRegistrations(action);
+    return true;
 }

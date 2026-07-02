@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <memory>
 #include <string>
 #include <borealis/core/actions.hpp>
 #include <borealis/core/application.hpp>
@@ -17,8 +18,65 @@ public: \
 private: \
     inline static brls::BrlsKeyCombination shortcut##func{brls::BRLS_KBD_KEY_UNKNOWN};
 
+enum class ShortcutDevice {
+    Keyboard,
+    WindowsAppCommand,
+    Gamepad,
+    Unsupported,
+};
+
+enum class ShortcutAction {
+    Refresh,
+    Search,
+    Last,
+    Next,
+    LastSub,
+    NextSub,
+    VolumeUp,
+    VolumeDown,
+    VideoProfile,
+    Danmaku,
+    Playlist,
+    Forward,
+    Rewind,
+    Setting,
+    VideoQuality,
+    VideoSpeed,
+    VideoSpeedUp,
+    VideoOsd,
+    VideoPause,
+};
+
+struct ShortcutBinding {
+    ShortcutDevice device = ShortcutDevice::Unsupported;
+    brls::BrlsKeyCombination key{brls::BRLS_KBD_KEY_UNKNOWN};
+    int nativeCode = 0;
+    std::string display;
+
+    std::string format() const;
+};
+
 class ShortcutHelper {
 public:
+    class ShortcutRegistration {
+    public:
+        ShortcutRegistration(ShortcutAction action, brls::View* view, brls::ActionListener listener,
+                             bool allowRepeating = false);
+        ~ShortcutRegistration();
+
+        ShortcutRegistration(const ShortcutRegistration&) = delete;
+        ShortcutRegistration& operator=(const ShortcutRegistration&) = delete;
+
+        void refresh();
+
+    private:
+        ShortcutAction action;
+        brls::View* view = nullptr;
+        brls::ActionListener listener;
+        bool allowRepeating = false;
+        brls::ActionIdentifier actionIdentifier = -1;
+    };
+
     /**
      * @brief 解析快捷键字符串
      * @param config 快捷键字符串
@@ -28,6 +86,16 @@ public:
      * @return 返回 BrlsKeyCombination对象；若解析失败返回的对象键值为 BRLS_KBD_KEY_UNKNOWN
      */
     static brls::BrlsKeyCombination parseKey(const std::string& config);
+    static ShortcutBinding parseBinding(const std::string& config);
+    static ShortcutBinding gamepadBinding(int button);
+    static std::string gamepadButtonDisplayName(int button);
+    static std::string formatBinding(const ShortcutBinding& binding);
+    static std::string bindingConfigKey(const ShortcutBinding& binding);
+    static brls::BrlsKeyCombination toBrlsKeyCombination(const ShortcutBinding& binding);
+    static bool applyBinding(ShortcutAction action, const ShortcutBinding& binding);
+    static std::unique_ptr<ShortcutRegistration> registerAction(ShortcutAction action, brls::View* view,
+                                                                brls::ActionListener listener,
+                                                                bool allowRepeating = false);
 
     // 刷新与切换快捷键
     WILI_DECL_SHORTCUT(Refresh);
