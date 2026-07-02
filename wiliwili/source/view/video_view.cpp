@@ -1671,46 +1671,47 @@ float VideoView::getRealDuration() { return real_duration > 0 ? (float)real_dura
 
 void VideoView::registerCommonActions(brls::Activity* activity) {
     this->commonShortcutRegistrations.clear();
+    brls::View* activityView = activity->getContentView();
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VideoPause, activity, [this](...) -> bool {
+        ShortcutAction::VideoPause, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             this->togglePlay();
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VolumeUp, activity, [this](...) -> bool {
+        ShortcutAction::VolumeUp, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             this->requestVolume((int)MPVCore::instance().volume + 5, 400);
             return true;
         }, true));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VolumeDown, activity, [this](...) -> bool {
+        ShortcutAction::VolumeDown, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             this->requestVolume((int)MPVCore::instance().volume - 5, 400);
             return true;
         }, true));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Forward, activity, [this](...) -> bool {
+        ShortcutAction::Forward, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             seeking_range += getSeekRange(seeking_range);
             this->requestSeeking(seeking_range);
             return true;
         }, true));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Rewind, activity, [this](...) -> bool {
+        ShortcutAction::Rewind, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             seeking_range -= getSeekRange(seeking_range);
             this->requestSeeking(seeking_range);
             return true;
         }, true));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VideoOsd, activity, [this](...) -> bool {
+        ShortcutAction::VideoOsd, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             this->toggleOSD();
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Danmaku, activity, [this](...) -> bool {
+        ShortcutAction::Danmaku, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             // 如果正在显示提示（提示历史播放进度），则不切换弹幕状态，将这种情况临时绑定成切换历史进度
             if (this->hintBox->getVisibility() == brls::Visibility::VISIBLE) {
@@ -1721,34 +1722,34 @@ void VideoView::registerCommonActions(brls::Activity* activity) {
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VideoQuality, activity, [this](...) -> bool {
+        ShortcutAction::VideoQuality, activityView,[this](...) -> bool {
             CHECK_OSD(true);
             APP_E->fire(VideoView::QUALITY_CHANGE, nullptr);
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VideoSpeed, activity,
+        ShortcutAction::VideoSpeed, activityView,
         [this](...) -> bool {
             CHECK_OSD(true);
             showSpeedList();
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Setting, activity,
+        ShortcutAction::Setting, activityView,
         [this](...) -> bool {
             CHECK_OSD(true);
             this->showPlayerSetting();
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Playlist, activity,
+        ShortcutAction::Playlist, activityView,
         [this](brls::View* view) {
             CHECK_OSD(true);
             if (this->seasonAction) this->seasonAction(view);
             return true;
         }));
     this->commonShortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::VideoProfile, activity,
+        ShortcutAction::VideoProfile, activityView,
         [this](...) {
             CHECK_OSD(true);
             toggleVideoProfile();

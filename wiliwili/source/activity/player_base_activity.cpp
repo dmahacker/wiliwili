@@ -255,13 +255,13 @@ void BasePlayerActivity::setCommonData() {
         true);
 
     this->shortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Last, this,
+        ShortcutAction::Last, this->getContentView(),
         [this](brls::View* view) -> bool {
             tabFrame->focus2LastTab();
             return true;
         }));
     this->shortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Next, this,
+        ShortcutAction::Next, this->getContentView(),
         [this](brls::View* view) -> bool {
             tabFrame->focus2NextTab();
             return true;

@@ -37,7 +37,7 @@ void SearchActivity::onContentAvailable() {
     });
 
     this->searchShortcutRegistration = ShortcutHelper::registerAction(
-        ShortcutAction::Search, this,
+        ShortcutAction::Search, this->getContentView(),
         [openText](brls::View* view) {
             openText();
             return true;
