@@ -1,35 +1,18 @@
 <brls:Box
         margin="40"
-        axis="column">
-    <brls:Header
-            title="@i18n/wiliwili/setting/shortcuts/title"
-            marginBottom="20"/>
-    <brls:Label
-            marginLeft="20"
-            marginBottom="20"
-            text="@i18n/wiliwili/setting/shortcuts/help"/>
-
-    <brls:Header
-            title="@i18n/wiliwili/setting/hot_keys/common_header"
-            marginBottom="20"/>
-    <brls:Label
-            marginLeft="20"
-            marginBottom="20"
-            text="@i18n/wiliwili/setting/hot_keys/common_content"/>
-    <brls:Header
-            title="@i18n/wiliwili/setting/hot_keys/player_header"
-            marginBottom="20"/>
-    <brls:Label
-            marginLeft="20"
-            marginBottom="20"
-            text="@i18n/wiliwili/setting/hot_keys/player_content"/>
-
+        axis="column"
+        height="auto">
     <brls:Header
             title="@i18n/wiliwili/setting/shortcuts/actions_header"
             marginBottom="0"/>
-    <brls:Box
-            id="setting/shortcuts/list"
+    <brls:ScrollingFrame
+            focusable="true"
             width="100%"
-            height="auto"
-            axis="column"/>
+            height="420">
+        <brls:Box
+                id="setting/shortcuts/list"
+                width="100%"
+                height="auto"
+                axis="column"/>
+    </brls:ScrollingFrame>
 </brls:Box>
