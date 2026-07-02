@@ -16,6 +16,7 @@
 #include "activity/search_activity_tv.hpp"
 #include "activity/hint_activity.hpp"
 #include "fragment/setting_network.hpp"
+#include "fragment/settings_shortcuts.hpp"
 #include "fragment/test_rumble.hpp"
 #include "utils/config_helper.hpp"
 #include "utils/vibration_helper.hpp"
@@ -222,7 +223,7 @@ void SettingActivity::onContentAvailable() {
     });
 
     btnHotKey->registerClickAction([](...) -> bool {
-        auto dialog = new brls::Dialog((brls::Box*)brls::View::createFromXMLResource("fragment/settings_hot_keys.xml"));
+        auto dialog = new brls::Dialog((brls::Box*)new SettingsShortcuts());
         dialog->addButton("hints/ok"_i18n, []() {});
         dialog->open();
         return true;
