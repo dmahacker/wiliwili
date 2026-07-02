@@ -161,6 +161,39 @@
       "player_header": "播放器快捷键",
       "player_content": " 快进，双击  快进锁定 \n +  向前跳转视频（单个  即可完整操控播放） \n 显示/隐藏 播放器OSD\n 显示/隐藏 弹幕 \n 显示/隐藏 视频数据"
     },
+    "shortcuts": {
+      "title": "快捷键编辑器",
+      "help": "选择一个动作以捕获键盘快捷键。保存后的快捷键会应用到新打开的页面；已打开的页面需要重新进入或重启后刷新快捷键注册。",
+      "actions_header": "快捷键动作",
+      "current_binding": "当前绑定",
+      "capture_keyboard": "现在按下键盘快捷键，将保存并应用到新打开的页面。",
+      "capture_placeholder": "暂不支持捕获新的快捷键。当前绑定不会被修改。",
+      "reset": "重置",
+      "reset_placeholder": "暂不支持重置",
+      "not_set": "未设置",
+      "actions": {
+        "refresh": "刷新",
+        "search": "搜索",
+        "last": "上一项",
+        "next": "下一项",
+        "last_sub": "上一个二级标签",
+        "next_sub": "下一个二级标签",
+        "volume_up": "增大音量",
+        "volume_down": "减小音量",
+        "danmaku": "弹幕",
+        "video_profile": "视频简介",
+        "video_quality": "画质",
+        "video_speed": "倍速",
+        "playlist": "播放列表",
+        "setting": "设置",
+        "video_speed_up": "加速播放",
+        "forward": "快进",
+        "rewind": "快退",
+        "video_osd": "播放器 OSD",
+        "video_pause": "播放/暂停",
+        "unknown": "未知快捷键"
+      }
+    },
     "net": {
       "test": {
         "header": "访问网络",

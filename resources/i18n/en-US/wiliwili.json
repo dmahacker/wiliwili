@@ -161,6 +161,39 @@
       "player_header": "Player",
       "player_content": "\uE0C5 Speed up，double click \uE0C5 to lock\n\uE0A3 + \uE0A5 Seek forward\n\uE0A3 Toggle player OSD \n\uE0A2 Toggle danmaku"
     },
+    "shortcuts": {
+      "title": "Shortcut editor",
+      "help": "Select an action to capture a keyboard shortcut. Saved shortcuts apply to newly opened pages; reopen an already-open page or restart to refresh existing shortcut registrations.",
+      "actions_header": "Shortcut actions",
+      "current_binding": "Current binding",
+      "capture_keyboard": "Press a keyboard shortcut now. It will be saved for newly opened pages.",
+      "capture_placeholder": "Shortcut capture is not available yet. The current binding will remain unchanged.",
+      "reset": "Reset",
+      "reset_placeholder": "Reset is not available yet",
+      "not_set": "Not set",
+      "actions": {
+        "refresh": "Refresh",
+        "search": "Search",
+        "last": "Last",
+        "next": "Next",
+        "last_sub": "Last secondary tab",
+        "next_sub": "Next secondary tab",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "danmaku": "Danmaku",
+        "video_profile": "Video profile",
+        "video_quality": "Video quality",
+        "video_speed": "Video speed",
+        "playlist": "Playlist",
+        "setting": "Settings",
+        "video_speed_up": "Speed up playback",
+        "forward": "Forward",
+        "rewind": "Rewind",
+        "video_osd": "Video OSD",
+        "video_pause": "Play/Pause",
+        "unknown": "Unknown shortcut"
+      }
+    },
     "net": {
       "test": {
         "header": "Access Network",
