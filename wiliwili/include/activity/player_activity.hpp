@@ -5,12 +5,15 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
+#include <vector>
 #include "presenter/video_detail.hpp"
 
 #include "view/video_comment.hpp"
 #include "view/recycling_grid.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "utils/event_helper.hpp"
+#include "utils/shortcut_helper.hpp"
 
 class VideoView;
 class UserInfoView;
@@ -137,6 +140,7 @@ protected:
 private:
     bool activityShown = false;
     std::chrono::system_clock::time_point videoDeadline{};
+    std::vector<std::unique_ptr<ShortcutHelper::ShortcutRegistration>> shortcutRegistrations;
 
     // 重新选择当前清晰度的播放链接播放
     void updateVideoLink();
