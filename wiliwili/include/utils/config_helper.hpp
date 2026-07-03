@@ -105,6 +105,12 @@ enum class SettingItem {
     UP_FILTER,
     LIVE_DANMAKU_FILTER_LEVEL,
     LIVE_SIDEBAR_DANMAKU_COUNT, // 直播间侧边栏弹幕数量上限
+    SHORTCUT_CONFIRM, // 确认基础键快捷键
+    SHORTCUT_BACK, // 返回基础键快捷键
+    SHORTCUT_NAVIGATE_UP, // 向上导航基础键快捷键
+    SHORTCUT_NAVIGATE_DOWN, // 向下导航基础键快捷键
+    SHORTCUT_NAVIGATE_LEFT, // 向左导航基础键快捷键
+    SHORTCUT_NAVIGATE_RIGHT, // 向右导航基础键快捷键
     SHORTCUT_REFRESH, // 刷新快捷键
     SHORTCUT_SEARCH, // 搜索快捷键
     SHORTCUT_LAST, // 上一个Tab快捷键

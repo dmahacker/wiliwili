@@ -77,6 +77,32 @@ unsigned int sceLibcHeapSize             = 24 * 1024 * 1024;
 #define PATH_MAX 256
 #endif
 
+static bool shortcutMatchesKeyState(const brls::BrlsKeyCombination& shortcut, const brls::KeyState& state) {
+    return shortcut.code != brls::BRLS_KBD_KEY_UNKNOWN && shortcut.code == state.key && shortcut.mod == state.mods;
+}
+
+static bool isNativeControllerKeyState(const brls::KeyState& state) {
+    if (state.mods != 0) return false;
+    return state.key == brls::BRLS_KBD_KEY_ENTER || state.key == brls::BRLS_KBD_KEY_ESCAPE ||
+           state.key == brls::BRLS_KBD_KEY_UP || state.key == brls::BRLS_KBD_KEY_DOWN ||
+           state.key == brls::BRLS_KBD_KEY_LEFT || state.key == brls::BRLS_KBD_KEY_RIGHT;
+}
+
+static bool dispatchShortcutButtonOnce(const brls::BrlsKeyCombination& shortcut, const brls::KeyState& state,
+                                       bool& shortcutHeld, brls::ControllerButton button) {
+    if (state.key == shortcut.code && !state.pressed) {
+        shortcutHeld = false;
+        return false;
+    }
+    if (brls::Application::isInputBlocks()) return false;
+    if (!shortcutMatchesKeyState(shortcut, state) || isNativeControllerKeyState(state)) return false;
+    if (shortcutHeld) return true;
+
+    shortcutHeld = true;
+    brls::Application::onControllerButtonPressed(button, false);
+    return true;
+}
+
 #ifdef __PSV__
 #ifdef BOREALIS_USE_GXM
 // 720P
@@ -149,6 +175,12 @@ std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
     {SettingItem::PLAYER_ASPECT, {"player_aspect", {"-1", "-2", "-3", "4:3", "16:9"}, {}, 0}},
     {SettingItem::HTTP_PROXY, {"http_proxy", {}, {}, 0}},
     {SettingItem::DANMAKU_STYLE_FONT, {"danmaku_style_font", {"stroke", "incline", "shadow", "pure"}, {}, 0}},
+    {SettingItem::SHORTCUT_CONFIRM, {"shortcut_confirm", {}, {}, 0}},
+    {SettingItem::SHORTCUT_BACK, {"shortcut_back", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_UP, {"shortcut_navigate_up", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_DOWN, {"shortcut_navigate_down", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_LEFT, {"shortcut_navigate_left", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_RIGHT, {"shortcut_navigate_right", {}, {}, 0}},
     {SettingItem::SHORTCUT_REFRESH, {"shortcut_refresh", {}, {}, 0}},
     {SettingItem::SHORTCUT_SEARCH, {"shortcut_search", {}, {}, 0}},
     {SettingItem::SHORTCUT_LAST, {"shortcut_last", {}, {}, 0}},
@@ -734,6 +766,13 @@ void ProgramConfig::load() {
         return shortcut;
     };
 
+    ShortcutHelper::setConfirm(getShortcutSetting(SettingItem::SHORTCUT_CONFIRM, std::string{"enter"}));
+    ShortcutHelper::setBack(getShortcutSetting(SettingItem::SHORTCUT_BACK, std::string{"escape"}));
+    ShortcutHelper::setNavigateUp(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_UP, std::string{"up"}));
+    ShortcutHelper::setNavigateDown(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_DOWN, std::string{"down"}));
+    ShortcutHelper::setNavigateLeft(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_LEFT, std::string{"left"}));
+    ShortcutHelper::setNavigateRight(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_RIGHT, std::string{"right"}));
+
     ShortcutHelper::setRefresh(getShortcutSetting(SettingItem::SHORTCUT_REFRESH, std::string{
 #ifdef __APPLE__
                                                   "meta-r"
@@ -821,6 +860,28 @@ void ProgramConfig::load() {
         // Init keyboard shortcut
         brls::Application::getPlatform()->getInputManager()->getKeyboardKeyStateChanged()->subscribe(
             [](brls::KeyState state) {
+                static bool confirmShortcutHeld = false;
+                static bool backShortcutHeld    = false;
+                static bool navigateUpShortcutHeld = false;
+                static bool navigateDownShortcutHeld = false;
+                static bool navigateLeftShortcutHeld = false;
+                static bool navigateRightShortcutHeld = false;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getConfirm(), state, confirmShortcutHeld, brls::BUTTON_A))
+                    return;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getBack(), state, backShortcutHeld, brls::BUTTON_B))
+                    return;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateUp(), state, navigateUpShortcutHeld,
+                                               brls::BUTTON_NAV_UP))
+                    return;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateDown(), state, navigateDownShortcutHeld,
+                                               brls::BUTTON_NAV_DOWN))
+                    return;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateLeft(), state, navigateLeftShortcutHeld,
+                                               brls::BUTTON_NAV_LEFT))
+                    return;
+                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateRight(), state, navigateRightShortcutHeld,
+                                               brls::BUTTON_NAV_RIGHT))
+                    return;
                 if (!state.pressed) return;
                 switch (state.key) {
 #ifndef __APPLE__
