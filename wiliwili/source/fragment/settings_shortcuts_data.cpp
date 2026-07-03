@@ -2,6 +2,12 @@
 
 namespace {
 const std::vector<ShortcutAction> EDITOR_ACTIONS = {
+    ShortcutAction::Confirm,
+    ShortcutAction::Back,
+    ShortcutAction::NavigateUp,
+    ShortcutAction::NavigateDown,
+    ShortcutAction::NavigateLeft,
+    ShortcutAction::NavigateRight,
     ShortcutAction::Refresh,
     ShortcutAction::Search,
     ShortcutAction::Last,
@@ -28,6 +34,18 @@ const std::vector<ShortcutAction>& shortcutEditorActions() { return EDITOR_ACTIO
 
 brls::BrlsKeyCombination shortcutEditorCurrentKey(ShortcutAction action) {
     switch (action) {
+        case ShortcutAction::Confirm:
+            return ShortcutHelper::getConfirm();
+        case ShortcutAction::Back:
+            return ShortcutHelper::getBack();
+        case ShortcutAction::NavigateUp:
+            return ShortcutHelper::getNavigateUp();
+        case ShortcutAction::NavigateDown:
+            return ShortcutHelper::getNavigateDown();
+        case ShortcutAction::NavigateLeft:
+            return ShortcutHelper::getNavigateLeft();
+        case ShortcutAction::NavigateRight:
+            return ShortcutHelper::getNavigateRight();
         case ShortcutAction::Refresh:
             return ShortcutHelper::getRefresh();
         case ShortcutAction::Search:
@@ -81,6 +99,24 @@ ShortcutBinding shortcutEditorCurrentBinding(ShortcutAction action) {
 
 bool shortcutEditorSettingItem(ShortcutAction action, SettingItem& item) {
     switch (action) {
+        case ShortcutAction::Confirm:
+            item = SettingItem::SHORTCUT_CONFIRM;
+            return true;
+        case ShortcutAction::Back:
+            item = SettingItem::SHORTCUT_BACK;
+            return true;
+        case ShortcutAction::NavigateUp:
+            item = SettingItem::SHORTCUT_NAVIGATE_UP;
+            return true;
+        case ShortcutAction::NavigateDown:
+            item = SettingItem::SHORTCUT_NAVIGATE_DOWN;
+            return true;
+        case ShortcutAction::NavigateLeft:
+            item = SettingItem::SHORTCUT_NAVIGATE_LEFT;
+            return true;
+        case ShortcutAction::NavigateRight:
+            item = SettingItem::SHORTCUT_NAVIGATE_RIGHT;
+            return true;
         case ShortcutAction::Refresh:
             item = SettingItem::SHORTCUT_REFRESH;
             return true;
@@ -144,6 +180,18 @@ bool shortcutEditorSettingItem(ShortcutAction action, SettingItem& item) {
 
 std::string shortcutEditorActionLabelKey(ShortcutAction action) {
     switch (action) {
+        case ShortcutAction::Confirm:
+            return "wiliwili/setting/shortcuts/actions/confirm";
+        case ShortcutAction::Back:
+            return "wiliwili/setting/shortcuts/actions/back";
+        case ShortcutAction::NavigateUp:
+            return "wiliwili/setting/shortcuts/actions/navigate_up";
+        case ShortcutAction::NavigateDown:
+            return "wiliwili/setting/shortcuts/actions/navigate_down";
+        case ShortcutAction::NavigateLeft:
+            return "wiliwili/setting/shortcuts/actions/navigate_left";
+        case ShortcutAction::NavigateRight:
+            return "wiliwili/setting/shortcuts/actions/navigate_right";
         case ShortcutAction::Refresh:
             return "wiliwili/setting/shortcuts/actions/refresh";
         case ShortcutAction::Search:
@@ -188,6 +236,18 @@ std::string shortcutEditorActionLabelKey(ShortcutAction action) {
 
 std::string shortcutEditorDefaultConfigKey(ShortcutAction action) {
     switch (action) {
+        case ShortcutAction::Confirm:
+            return "enter";
+        case ShortcutAction::Back:
+            return "escape";
+        case ShortcutAction::NavigateUp:
+            return "up";
+        case ShortcutAction::NavigateDown:
+            return "down";
+        case ShortcutAction::NavigateLeft:
+            return "left";
+        case ShortcutAction::NavigateRight:
+            return "right";
         case ShortcutAction::Refresh:
 #ifdef __APPLE__
             return "meta-r";
