@@ -26,6 +26,12 @@ enum class ShortcutDevice {
 };
 
 enum class ShortcutAction {
+    Confirm,
+    Back,
+    NavigateUp,
+    NavigateDown,
+    NavigateLeft,
+    NavigateRight,
     Refresh,
     Search,
     Last,
@@ -96,6 +102,24 @@ public:
     static std::unique_ptr<ShortcutRegistration> registerAction(ShortcutAction action, brls::View* view,
                                                                 brls::ActionListener listener,
                                                                 bool allowRepeating = false);
+
+    // 确认基础键快捷键
+    WILI_DECL_SHORTCUT(Confirm);
+
+    // 返回基础键快捷键
+    WILI_DECL_SHORTCUT(Back);
+
+    // 向上导航基础键快捷键
+    WILI_DECL_SHORTCUT(NavigateUp);
+
+    // 向下导航基础键快捷键
+    WILI_DECL_SHORTCUT(NavigateDown);
+
+    // 向左导航基础键快捷键
+    WILI_DECL_SHORTCUT(NavigateLeft);
+
+    // 向右导航基础键快捷键
+    WILI_DECL_SHORTCUT(NavigateRight);
 
     // 刷新与切换快捷键
     WILI_DECL_SHORTCUT(Refresh);

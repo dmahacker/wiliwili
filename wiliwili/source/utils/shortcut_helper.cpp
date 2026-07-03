@@ -21,6 +21,10 @@ static std::unordered_map<std::string, brls::BrlsKeyboardModifiers> modifierMap 
 };
 
 static std::unordered_map<std::string, brls::BrlsKeyboardScancode> functionMap = {
+    {"enter", brls::BRLS_KBD_KEY_ENTER},
+    {"return", brls::BRLS_KBD_KEY_ENTER},
+    {"escape", brls::BRLS_KBD_KEY_ESCAPE},
+    {"esc", brls::BRLS_KBD_KEY_ESCAPE},
     {"f1", brls::BRLS_KBD_KEY_F1},
     {"f2", brls::BRLS_KBD_KEY_F2},
     {"f3", brls::BRLS_KBD_KEY_F3},
@@ -96,6 +100,10 @@ static std::string keyDisplayName(brls::BrlsKeyboardScancode code) {
     }
 
     switch (code) {
+        case brls::BRLS_KBD_KEY_ENTER:
+            return "Enter";
+        case brls::BRLS_KBD_KEY_ESCAPE:
+            return "Escape";
         case brls::BRLS_KBD_KEY_TAB:
             return "Tab";
         case brls::BRLS_KBD_KEY_BACKSPACE:
@@ -185,6 +193,18 @@ static std::string keyConfigName(const brls::BrlsKeyCombination& key) {
 
 static brls::BrlsKeyCombination currentShortcut(ShortcutAction action) {
     switch (action) {
+        case ShortcutAction::Confirm:
+            return ShortcutHelper::getConfirm();
+        case ShortcutAction::Back:
+            return ShortcutHelper::getBack();
+        case ShortcutAction::NavigateUp:
+            return ShortcutHelper::getNavigateUp();
+        case ShortcutAction::NavigateDown:
+            return ShortcutHelper::getNavigateDown();
+        case ShortcutAction::NavigateLeft:
+            return ShortcutHelper::getNavigateLeft();
+        case ShortcutAction::NavigateRight:
+            return ShortcutHelper::getNavigateRight();
         case ShortcutAction::Refresh:
             return ShortcutHelper::getRefresh();
         case ShortcutAction::Search:
@@ -389,6 +409,24 @@ bool ShortcutHelper::applyBinding(ShortcutAction action, const ShortcutBinding& 
     if (config.empty()) return false;
 
     switch (action) {
+        case ShortcutAction::Confirm:
+            setConfirm(config);
+            break;
+        case ShortcutAction::Back:
+            setBack(config);
+            break;
+        case ShortcutAction::NavigateUp:
+            setNavigateUp(config);
+            break;
+        case ShortcutAction::NavigateDown:
+            setNavigateDown(config);
+            break;
+        case ShortcutAction::NavigateLeft:
+            setNavigateLeft(config);
+            break;
+        case ShortcutAction::NavigateRight:
+            setNavigateRight(config);
+            break;
         case ShortcutAction::Refresh:
             setRefresh(config);
             break;
