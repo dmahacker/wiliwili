@@ -172,6 +172,12 @@
       "reset_placeholder": "暫不支援重置",
       "not_set": "未設定",
       "actions": {
+        "confirm": "確認",
+        "back": "返回",
+        "navigate_up": "向上導覽",
+        "navigate_down": "向下導覽",
+        "navigate_left": "向左導覽",
+        "navigate_right": "向右導覽",
         "refresh": "重新整理",
         "search": "搜尋",
         "last": "上一項",

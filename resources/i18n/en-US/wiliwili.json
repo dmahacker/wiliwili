@@ -172,6 +172,12 @@
       "reset_placeholder": "Reset is not available yet",
       "not_set": "Not set",
       "actions": {
+        "confirm": "Confirm",
+        "back": "Back",
+        "navigate_up": "Navigate up",
+        "navigate_down": "Navigate down",
+        "navigate_left": "Navigate left",
+        "navigate_right": "Navigate right",
         "refresh": "Refresh",
         "search": "Search",
         "last": "Last",

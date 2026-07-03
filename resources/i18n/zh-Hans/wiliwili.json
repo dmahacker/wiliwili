@@ -172,6 +172,12 @@
       "reset_placeholder": "暂不支持重置",
       "not_set": "未设置",
       "actions": {
+        "confirm": "确认",
+        "back": "返回",
+        "navigate_up": "向上导航",
+        "navigate_down": "向下导航",
+        "navigate_left": "向左导航",
+        "navigate_right": "向右导航",
         "refresh": "刷新",
         "search": "搜索",
         "last": "上一项",
