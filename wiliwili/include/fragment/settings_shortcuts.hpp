@@ -9,7 +9,7 @@
 #include <borealis/core/input.hpp>
 #endif
 
-#include "utils/shortcut_helper.hpp"
+#include "utils/shortcut_binding.hpp"
 
 #ifndef TASK3_HELPER_ONLY
 namespace brls {

@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "utils/config_helper.hpp"
-#include "utils/shortcut_helper.hpp"
+#include "utils/shortcut_binding.hpp"
 
 const std::vector<ShortcutAction>& shortcutEditorActions();
 brls::BrlsKeyCombination shortcutEditorCurrentKey(ShortcutAction action);

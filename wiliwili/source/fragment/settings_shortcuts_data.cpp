@@ -1,5 +1,8 @@
 #include "fragment/settings_shortcuts_data.hpp"
 
+#include "utils/shortcut_helper.hpp"
+#include "utils/base_shortcut_helper.hpp"
+
 namespace {
 const std::vector<ShortcutAction> EDITOR_ACTIONS = {
     ShortcutAction::Confirm,
@@ -35,17 +38,17 @@ const std::vector<ShortcutAction>& shortcutEditorActions() { return EDITOR_ACTIO
 brls::BrlsKeyCombination shortcutEditorCurrentKey(ShortcutAction action) {
     switch (action) {
         case ShortcutAction::Confirm:
-            return ShortcutHelper::getConfirm();
+            return BaseShortcutHelper::getConfirm();
         case ShortcutAction::Back:
-            return ShortcutHelper::getBack();
+            return BaseShortcutHelper::getBack();
         case ShortcutAction::NavigateUp:
-            return ShortcutHelper::getNavigateUp();
+            return BaseShortcutHelper::getNavigateUp();
         case ShortcutAction::NavigateDown:
-            return ShortcutHelper::getNavigateDown();
+            return BaseShortcutHelper::getNavigateDown();
         case ShortcutAction::NavigateLeft:
-            return ShortcutHelper::getNavigateLeft();
+            return BaseShortcutHelper::getNavigateLeft();
         case ShortcutAction::NavigateRight:
-            return ShortcutHelper::getNavigateRight();
+            return BaseShortcutHelper::getNavigateRight();
         case ShortcutAction::Refresh:
             return ShortcutHelper::getRefresh();
         case ShortcutAction::Search:
@@ -181,57 +184,57 @@ bool shortcutEditorSettingItem(ShortcutAction action, SettingItem& item) {
 std::string shortcutEditorActionLabelKey(ShortcutAction action) {
     switch (action) {
         case ShortcutAction::Confirm:
-            return "wiliwili/setting/shortcuts/actions/confirm";
+            return "shortcuts/actions/confirm";
         case ShortcutAction::Back:
-            return "wiliwili/setting/shortcuts/actions/back";
+            return "shortcuts/actions/back";
         case ShortcutAction::NavigateUp:
-            return "wiliwili/setting/shortcuts/actions/navigate_up";
+            return "shortcuts/actions/navigate_up";
         case ShortcutAction::NavigateDown:
-            return "wiliwili/setting/shortcuts/actions/navigate_down";
+            return "shortcuts/actions/navigate_down";
         case ShortcutAction::NavigateLeft:
-            return "wiliwili/setting/shortcuts/actions/navigate_left";
+            return "shortcuts/actions/navigate_left";
         case ShortcutAction::NavigateRight:
-            return "wiliwili/setting/shortcuts/actions/navigate_right";
+            return "shortcuts/actions/navigate_right";
         case ShortcutAction::Refresh:
-            return "wiliwili/setting/shortcuts/actions/refresh";
+            return "shortcuts/actions/refresh";
         case ShortcutAction::Search:
-            return "wiliwili/setting/shortcuts/actions/search";
+            return "shortcuts/actions/search";
         case ShortcutAction::Last:
-            return "wiliwili/setting/shortcuts/actions/last";
+            return "shortcuts/actions/last";
         case ShortcutAction::Next:
-            return "wiliwili/setting/shortcuts/actions/next";
+            return "shortcuts/actions/next";
         case ShortcutAction::LastSub:
-            return "wiliwili/setting/shortcuts/actions/last_sub";
+            return "shortcuts/actions/last_sub";
         case ShortcutAction::NextSub:
-            return "wiliwili/setting/shortcuts/actions/next_sub";
+            return "shortcuts/actions/next_sub";
         case ShortcutAction::VolumeUp:
-            return "wiliwili/setting/shortcuts/actions/volume_up";
+            return "shortcuts/actions/volume_up";
         case ShortcutAction::VolumeDown:
-            return "wiliwili/setting/shortcuts/actions/volume_down";
+            return "shortcuts/actions/volume_down";
         case ShortcutAction::Danmaku:
-            return "wiliwili/setting/shortcuts/actions/danmaku";
+            return "shortcuts/actions/danmaku";
         case ShortcutAction::VideoProfile:
-            return "wiliwili/setting/shortcuts/actions/video_profile";
+            return "shortcuts/actions/video_profile";
         case ShortcutAction::VideoQuality:
-            return "wiliwili/setting/shortcuts/actions/video_quality";
+            return "shortcuts/actions/video_quality";
         case ShortcutAction::VideoSpeed:
-            return "wiliwili/setting/shortcuts/actions/video_speed";
+            return "shortcuts/actions/video_speed";
         case ShortcutAction::Playlist:
-            return "wiliwili/setting/shortcuts/actions/playlist";
+            return "shortcuts/actions/playlist";
         case ShortcutAction::Setting:
-            return "wiliwili/setting/shortcuts/actions/setting";
+            return "shortcuts/actions/setting";
         case ShortcutAction::VideoSpeedUp:
-            return "wiliwili/setting/shortcuts/actions/video_speed_up";
+            return "shortcuts/actions/video_speed_up";
         case ShortcutAction::Forward:
-            return "wiliwili/setting/shortcuts/actions/forward";
+            return "shortcuts/actions/forward";
         case ShortcutAction::Rewind:
-            return "wiliwili/setting/shortcuts/actions/rewind";
+            return "shortcuts/actions/rewind";
         case ShortcutAction::VideoOsd:
-            return "wiliwili/setting/shortcuts/actions/video_osd";
+            return "shortcuts/actions/video_osd";
         case ShortcutAction::VideoPause:
-            return "wiliwili/setting/shortcuts/actions/video_pause";
+            return "shortcuts/actions/video_pause";
     }
-    return "wiliwili/setting/shortcuts/actions/unknown";
+    return "shortcuts/actions/unknown";
 }
 
 std::string shortcutEditorDefaultConfigKey(ShortcutAction action) {
@@ -299,5 +302,5 @@ std::string shortcutEditorDefaultConfigKey(ShortcutAction action) {
 }
 
 ShortcutBinding shortcutEditorDefaultBinding(ShortcutAction action) {
-    return ShortcutHelper::parseBinding(shortcutEditorDefaultConfigKey(action));
+    return ShortcutBindingHelper::parseBinding(shortcutEditorDefaultConfigKey(action));
 }

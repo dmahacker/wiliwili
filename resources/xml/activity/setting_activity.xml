@@ -335,7 +335,7 @@
 
                             <brls:RadioCell
                                     id="tools/hot_key"
-                                    title="@i18n/wiliwili/setting/shortcuts/title"/>
+                                    title="@i18n/wiliwili/setting/tools/tutorial/hot_key"/>
 
                             <brls:RadioCell
                                     id="tools/tutorial_wiki"

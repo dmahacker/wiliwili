@@ -190,7 +190,7 @@ ShortcutBinding ShortcutCaptureHelper::mapWindowsKeyboardEvent(int key, int scan
     const std::string token = keyToken(key);
     if (token.empty()) return unsupportedBinding();
 
-    return ShortcutHelper::parseBinding(modifierPrefix(mods) + token);
+    return ShortcutBindingHelper::parseBinding(modifierPrefix(mods) + token);
 }
 
 ShortcutBinding ShortcutCaptureHelper::mapWindowsAppCommandEvent(int command) {

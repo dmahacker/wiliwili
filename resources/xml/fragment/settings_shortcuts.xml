@@ -3,7 +3,7 @@
         axis="column"
         height="auto">
     <brls:Header
-            title="@i18n/wiliwili/setting/shortcuts/actions_header"
+            title="@i18n/shortcuts/actions_header"
             marginBottom="0"/>
     <brls:ScrollingFrame
             focusable="true"

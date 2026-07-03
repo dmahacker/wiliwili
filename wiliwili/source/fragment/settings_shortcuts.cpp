@@ -2,6 +2,7 @@
 #include "fragment/settings_shortcuts_data.hpp"
 
 #include "utils/config_helper.hpp"
+#include "utils/shortcut_binding.hpp"
 #include "utils/shortcut_capture_helper.hpp"
 
 #ifndef TASK3_HELPER_ONLY
@@ -15,11 +16,11 @@ using namespace brls::literals;
 #endif
 
 std::string shortcutEditorBindingText(ShortcutAction action) {
-    return ShortcutHelper::formatBinding(shortcutEditorCurrentBinding(action));
+    return ShortcutBindingHelper::formatBinding(shortcutEditorCurrentBinding(action));
 }
 
 std::string shortcutEditorCapturePlaceholderText() {
-    return "wiliwili/setting/shortcuts/capture_placeholder";
+    return "shortcuts/capture_placeholder";
 }
 
 ShortcutEditorCaptureState shortcutEditorCaptureState(ShortcutEditorCaptureDevice device) {
@@ -36,7 +37,7 @@ ShortcutEditorCaptureState shortcutEditorCaptureState(ShortcutEditorCaptureDevic
 std::string shortcutEditorCaptureStateText(ShortcutEditorCaptureState state) {
     switch (state) {
         case ShortcutEditorCaptureState::Keyboard:
-            return "wiliwili/setting/shortcuts/capture_keyboard";
+            return "shortcuts/capture_keyboard";
         case ShortcutEditorCaptureState::Unsupported:
             return shortcutEditorCapturePlaceholderText();
     }
@@ -50,23 +51,20 @@ ShortcutBinding shortcutEditorCaptureBinding(brls::BrlsKeyboardScancode key, sho
     binding.device = ShortcutDevice::Keyboard;
     binding.key.code = key;
     binding.key.mod  = mods;
-    if (ShortcutHelper::bindingConfigKey(binding).empty()) return {};
+    if (ShortcutBindingHelper::bindingConfigKey(binding).empty()) return {};
     return binding;
 }
 
 bool shortcutEditorSaveBinding(ShortcutAction action, const ShortcutBinding& binding) {
     if (binding.device != ShortcutDevice::Keyboard) return false;
-    const std::string configKey = ShortcutHelper::bindingConfigKey(binding);
+    const std::string configKey = ShortcutBindingHelper::bindingConfigKey(binding);
     if (configKey.empty()) return false;
-    if (!ShortcutHelper::applyBinding(action, binding)) return false;
+    if (!ShortcutBindingHelper::applyBinding(action, binding)) return false;
 
     SettingItem settingItem{};
     if (!shortcutEditorSettingItem(action, settingItem)) return false;
 
-    nlohmann::json stored;
-    stored["device"] = "keyboard";
-    stored["key"] = configKey;
-    ProgramConfig::instance().setSettingItem(settingItem, stored);
+    ProgramConfig::instance().setSettingItem(settingItem, configKey);
     return true;
 }
 
@@ -102,7 +100,7 @@ brls::View* SettingsShortcuts::create() { return new SettingsShortcuts(); }
 
 void SettingsShortcuts::updateCellTitle(ShortcutAction action, brls::RadioCell* cell) {
     std::string binding = shortcutEditorBindingText(action);
-    if (binding.empty()) binding = brls::getStr("wiliwili/setting/shortcuts/not_set");
+    if (binding.empty()) binding = brls::getStr("shortcuts/not_set");
     cell->title->setText(brls::getStr(shortcutEditorActionLabelKey(action)) + "    " + binding);
 }
 
@@ -115,12 +113,12 @@ void SettingsShortcuts::unsubscribeKeyboardCapture() {
 
 void SettingsShortcuts::openCaptureDialog(ShortcutAction action, brls::RadioCell* cell) {
     std::string binding = shortcutEditorBindingText(action);
-    if (binding.empty()) binding = brls::getStr("wiliwili/setting/shortcuts/not_set");
+    if (binding.empty()) binding = brls::getStr("shortcuts/not_set");
     const auto captureState = shortcutEditorCaptureState(ShortcutEditorCaptureDevice::Keyboard);
 
     auto message = brls::getStr(shortcutEditorActionLabelKey(action)) + "\n\n" +
                    brls::getStr(shortcutEditorCaptureStateText(captureState)) + "\n\n" +
-                   brls::getStr("wiliwili/setting/shortcuts/current_binding") + ": " + binding;
+                   brls::getStr("shortcuts/current_binding") + ": " + binding;
     auto* dialog = new brls::Dialog(message);
     this->unsubscribeKeyboardCapture();
     ShortcutCaptureHelper::startCapture();
@@ -138,7 +136,7 @@ void SettingsShortcuts::openCaptureDialog(ShortcutAction action, brls::RadioCell
             });
     this->keyboardCaptureSubscribed = true;
 
-    dialog->addButton("wiliwili/setting/shortcuts/reset"_i18n, [this, action, cell, dialog]() {
+    dialog->addButton("shortcuts/reset"_i18n, [this, action, cell, dialog]() {
         this->resetBinding(action, cell);
         this->unsubscribeKeyboardCapture();
         dialog->close();

@@ -215,13 +215,11 @@ void BasePlayerActivity::setCommonData() {
                                       return true;
                                   });
 
-    this->shortcutRegistrations.clear();
-    this->shortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Refresh, recyclingGrid,
-        [this](brls::View* view) -> bool {
-            this->setCommentMode();
-            return true;
-        }));
+    recyclingGrid->registerAction(ShortcutHelper::getRefresh(),
+                                  [this](brls::View* view) -> bool {
+                                      this->setCommentMode();
+                                      return true;
+                                  });
 
     // 切换右侧Tab
     this->registerAction(
@@ -254,18 +252,18 @@ void BasePlayerActivity::setCommonData() {
         },
         true);
 
-    this->shortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Last, this->getContentView(),
+    this->registerAction(
+        ShortcutHelper::getLast(),
         [this](brls::View* view) -> bool {
             tabFrame->focus2LastTab();
             return true;
-        }));
-    this->shortcutRegistrations.push_back(ShortcutHelper::registerAction(
-        ShortcutAction::Next, this->getContentView(),
+        });
+    this->registerAction(
+        ShortcutHelper::getNext(),
         [this](brls::View* view) -> bool {
             tabFrame->focus2NextTab();
             return true;
-        }));
+        });
     video->registerCommonActions(this);
 
     // 调整清晰度

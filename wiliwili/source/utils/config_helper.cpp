@@ -31,6 +31,7 @@
 #include "utils/ban_list.hpp"
 #include "utils/string_helper.hpp"
 #include "utils/shortcut_helper.hpp"
+#include "utils/base_shortcut_helper.hpp"
 #include "presenter/video_detail.hpp"
 #include "activity/player_activity.hpp"
 #include "activity/search_activity_tv.hpp"
@@ -76,32 +77,6 @@ unsigned int sceLibcHeapSize             = 24 * 1024 * 1024;
 #ifndef PATH_MAX
 #define PATH_MAX 256
 #endif
-
-static bool shortcutMatchesKeyState(const brls::BrlsKeyCombination& shortcut, const brls::KeyState& state) {
-    return shortcut.code != brls::BRLS_KBD_KEY_UNKNOWN && shortcut.code == state.key && shortcut.mod == state.mods;
-}
-
-static bool isNativeControllerKeyState(const brls::KeyState& state) {
-    if (state.mods != 0) return false;
-    return state.key == brls::BRLS_KBD_KEY_ENTER || state.key == brls::BRLS_KBD_KEY_ESCAPE ||
-           state.key == brls::BRLS_KBD_KEY_UP || state.key == brls::BRLS_KBD_KEY_DOWN ||
-           state.key == brls::BRLS_KBD_KEY_LEFT || state.key == brls::BRLS_KBD_KEY_RIGHT;
-}
-
-static bool dispatchShortcutButtonOnce(const brls::BrlsKeyCombination& shortcut, const brls::KeyState& state,
-                                       bool& shortcutHeld, brls::ControllerButton button) {
-    if (state.key == shortcut.code && !state.pressed) {
-        shortcutHeld = false;
-        return false;
-    }
-    if (brls::Application::isInputBlocks()) return false;
-    if (!shortcutMatchesKeyState(shortcut, state) || isNativeControllerKeyState(state)) return false;
-    if (shortcutHeld) return true;
-
-    shortcutHeld = true;
-    brls::Application::onControllerButtonPressed(button, false);
-    return true;
-}
 
 #ifdef __PSV__
 #ifdef BOREALIS_USE_GXM
@@ -746,41 +721,16 @@ void ProgramConfig::load() {
     brls::Application::setDeactivatedFPS(getSettingItem(SettingItem::DEACTIVATED_FPS, 5));
 
     // 初始化快捷键
-    const auto getShortcutSetting = [this](SettingItem item, const std::string& defaultValue) {
-        const auto& key = SETTING_MAP[item].key;
-        if (!setting.contains(key)) return defaultValue;
+    BaseShortcutHelper::loadFromConfig(*this);
 
-        const auto& value = setting.at(key);
-        std::string shortcut;
-        if (value.is_string()) {
-            shortcut = value.get<std::string>();
-        } else if (value.is_object() && value.contains("device") && value.at("device").is_string() &&
-                   value.at("device").get<std::string>() == "keyboard" && value.contains("key") &&
-                   value.at("key").is_string()) {
-            shortcut = value.at("key").get<std::string>();
-        } else {
-            return defaultValue;
-        }
-
-        if (ShortcutHelper::parseKey(shortcut).code == brls::BRLS_KBD_KEY_UNKNOWN) return defaultValue;
-        return shortcut;
-    };
-
-    ShortcutHelper::setConfirm(getShortcutSetting(SettingItem::SHORTCUT_CONFIRM, std::string{"enter"}));
-    ShortcutHelper::setBack(getShortcutSetting(SettingItem::SHORTCUT_BACK, std::string{"escape"}));
-    ShortcutHelper::setNavigateUp(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_UP, std::string{"up"}));
-    ShortcutHelper::setNavigateDown(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_DOWN, std::string{"down"}));
-    ShortcutHelper::setNavigateLeft(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_LEFT, std::string{"left"}));
-    ShortcutHelper::setNavigateRight(getShortcutSetting(SettingItem::SHORTCUT_NAVIGATE_RIGHT, std::string{"right"}));
-
-    ShortcutHelper::setRefresh(getShortcutSetting(SettingItem::SHORTCUT_REFRESH, std::string{
+    ShortcutHelper::setRefresh(getSettingItem(SettingItem::SHORTCUT_REFRESH, std::string{
 #ifdef __APPLE__
                                                   "meta-r"
 #else
                                                   "ctrl-r"
 #endif
                                               }));
-    ShortcutHelper::setSearch(getShortcutSetting(SettingItem::SHORTCUT_SEARCH, std::string{
+    ShortcutHelper::setSearch(getSettingItem(SettingItem::SHORTCUT_SEARCH, std::string{
 #ifdef __APPLE__
                                                  "meta-f"
 #else
@@ -788,23 +738,23 @@ void ProgramConfig::load() {
 #endif
                                              }));
 
-    ShortcutHelper::setLast(getShortcutSetting(SettingItem::SHORTCUT_LAST, std::string{"pgup"}));
-    ShortcutHelper::setNext(getShortcutSetting(SettingItem::SHORTCUT_NEXT, std::string{"pgdn"}));
-    ShortcutHelper::setLastSub(getShortcutSetting(SettingItem::SHORTCUT_LAST_SUB, std::string{"shift-pgup"}));
-    ShortcutHelper::setNextSub(getShortcutSetting(SettingItem::SHORTCUT_NEXT_SUB, std::string{"shift-pgdn"}));
-    ShortcutHelper::setVolumeUp(getShortcutSetting(SettingItem::SHORTCUT_VOLUME_UP, std::string{"0"}));
-    ShortcutHelper::setVolumeDown(getShortcutSetting(SettingItem::SHORTCUT_VOLUME_DOWN, std::string{"9"}));
-    ShortcutHelper::setDanmaku(getShortcutSetting(SettingItem::SHORTCUT_DANMAKU, std::string{"d"}));
-    ShortcutHelper::setVideoProfile(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_PROFILE, std::string{"f1"}));
-    ShortcutHelper::setVideoQuality(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_QUALITY, std::string{"f2"}));
-    ShortcutHelper::setVideoSpeed(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_SPEED, std::string{"f3"}));
-    ShortcutHelper::setPlaylist(getShortcutSetting(SettingItem::SHORTCUT_PLAYLIST, std::string{"f4"}));
-    ShortcutHelper::setSetting(getShortcutSetting(SettingItem::SHORTCUT_SETTING, std::string{"f5"}));
-    ShortcutHelper::setVideoSpeedUp(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_SPEEDUP, std::string{"p"}));
-    ShortcutHelper::setForward(getShortcutSetting(SettingItem::SHORTCUT_FORWARD, std::string{"]"}));
-    ShortcutHelper::setRewind(getShortcutSetting(SettingItem::SHORTCUT_REWIND, std::string{"["}));
-    ShortcutHelper::setVideoOsd(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_OSD, std::string{"o"}));
-    ShortcutHelper::setVideoPause(getShortcutSetting(SettingItem::SHORTCUT_VIDEO_PAUSE, std::string{"space"}));
+    ShortcutHelper::setLast(getSettingItem(SettingItem::SHORTCUT_LAST, std::string{"pgup"}));
+    ShortcutHelper::setNext(getSettingItem(SettingItem::SHORTCUT_NEXT, std::string{"pgdn"}));
+    ShortcutHelper::setLastSub(getSettingItem(SettingItem::SHORTCUT_LAST_SUB, std::string{"shift-pgup"}));
+    ShortcutHelper::setNextSub(getSettingItem(SettingItem::SHORTCUT_NEXT_SUB, std::string{"shift-pgdn"}));
+    ShortcutHelper::setVolumeUp(getSettingItem(SettingItem::SHORTCUT_VOLUME_UP, std::string{"0"}));
+    ShortcutHelper::setVolumeDown(getSettingItem(SettingItem::SHORTCUT_VOLUME_DOWN, std::string{"9"}));
+    ShortcutHelper::setDanmaku(getSettingItem(SettingItem::SHORTCUT_DANMAKU, std::string{"d"}));
+    ShortcutHelper::setVideoProfile(getSettingItem(SettingItem::SHORTCUT_VIDEO_PROFILE, std::string{"f1"}));
+    ShortcutHelper::setVideoQuality(getSettingItem(SettingItem::SHORTCUT_VIDEO_QUALITY, std::string{"f2"}));
+    ShortcutHelper::setVideoSpeed(getSettingItem(SettingItem::SHORTCUT_VIDEO_SPEED, std::string{"f3"}));
+    ShortcutHelper::setPlaylist(getSettingItem(SettingItem::SHORTCUT_PLAYLIST, std::string{"f4"}));
+    ShortcutHelper::setSetting(getSettingItem(SettingItem::SHORTCUT_SETTING, std::string{"f5"}));
+    ShortcutHelper::setVideoSpeedUp(getSettingItem(SettingItem::SHORTCUT_VIDEO_SPEEDUP, std::string{"p"}));
+    ShortcutHelper::setForward(getSettingItem(SettingItem::SHORTCUT_FORWARD, std::string{"]"}));
+    ShortcutHelper::setRewind(getSettingItem(SettingItem::SHORTCUT_REWIND, std::string{"["}));
+    ShortcutHelper::setVideoOsd(getSettingItem(SettingItem::SHORTCUT_VIDEO_OSD, std::string{"o"}));
+    ShortcutHelper::setVideoPause(getSettingItem(SettingItem::SHORTCUT_VIDEO_PAUSE, std::string{"space"}));
 
     // 初始化一些在创建窗口之后才能初始化的内容
     brls::Application::getWindowCreationDoneEvent()->subscribe([this]() {
@@ -860,28 +810,7 @@ void ProgramConfig::load() {
         // Init keyboard shortcut
         brls::Application::getPlatform()->getInputManager()->getKeyboardKeyStateChanged()->subscribe(
             [](brls::KeyState state) {
-                static bool confirmShortcutHeld = false;
-                static bool backShortcutHeld    = false;
-                static bool navigateUpShortcutHeld = false;
-                static bool navigateDownShortcutHeld = false;
-                static bool navigateLeftShortcutHeld = false;
-                static bool navigateRightShortcutHeld = false;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getConfirm(), state, confirmShortcutHeld, brls::BUTTON_A))
-                    return;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getBack(), state, backShortcutHeld, brls::BUTTON_B))
-                    return;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateUp(), state, navigateUpShortcutHeld,
-                                               brls::BUTTON_NAV_UP))
-                    return;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateDown(), state, navigateDownShortcutHeld,
-                                               brls::BUTTON_NAV_DOWN))
-                    return;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateLeft(), state, navigateLeftShortcutHeld,
-                                               brls::BUTTON_NAV_LEFT))
-                    return;
-                if (dispatchShortcutButtonOnce(ShortcutHelper::getNavigateRight(), state, navigateRightShortcutHeld,
-                                               brls::BUTTON_NAV_RIGHT))
-                    return;
+                if (BaseShortcutHelper::dispatch(state)) return;
                 if (!state.pressed) return;
                 switch (state.key) {
 #ifndef __APPLE__

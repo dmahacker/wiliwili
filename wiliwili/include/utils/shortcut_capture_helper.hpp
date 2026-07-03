@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/shortcut_helper.hpp"
+#include "utils/shortcut_binding.hpp"
 
 enum class ShortcutCaptureStatus {
     Idle,
