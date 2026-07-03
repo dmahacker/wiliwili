@@ -172,6 +172,12 @@
       "reset_placeholder": "아직 재설정을 사용할 수 없습니다",
       "not_set": "설정 안 됨",
       "actions": {
+        "confirm": "확인",
+        "back": "뒤로",
+        "navigate_up": "위로 이동",
+        "navigate_down": "아래로 이동",
+        "navigate_left": "왼쪽으로 이동",
+        "navigate_right": "오른쪽으로 이동",
         "refresh": "새로 고침",
         "search": "검색",
         "last": "이전",

@@ -172,6 +172,12 @@
       "reset_placeholder": "リセットーなーら利用なやびらん",
       "not_set": "未設定",
       "actions": {
+        "confirm": "決定",
+        "back": "戻る",
+        "navigate_up": "上へ移動",
+        "navigate_down": "下へ移動",
+        "navigate_left": "左へ移動",
+        "navigate_right": "右へ移動",
         "refresh": "更新",
         "search": "検索",
         "last": "前へ",

@@ -172,6 +172,12 @@
       "reset_placeholder": "Il ripristino non e ancora disponibile",
       "not_set": "Non impostata",
       "actions": {
+        "confirm": "Conferma",
+        "back": "Indietro",
+        "navigate_up": "Naviga su",
+        "navigate_down": "Naviga giu",
+        "navigate_left": "Naviga a sinistra",
+        "navigate_right": "Naviga a destra",
         "refresh": "Aggiorna",
         "search": "Cerca",
         "last": "Precedente",
