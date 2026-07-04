@@ -24,6 +24,11 @@ build-*
 android-project
 *.deb
 *.dmp
+# Windows packaging (scripts/package-win.sh 下载/生成的产物)
+custom-mpv/
+win-deps/
+_dep-src/
+*.exe
 # Github Copilot
 .github/copilot-instructions.md
 .github/instructions/
