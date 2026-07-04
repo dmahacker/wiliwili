@@ -17,6 +17,10 @@ static std::unordered_map<std::string, brls::BrlsKeyboardModifiers> modifierMap 
 };
 
 static std::unordered_map<std::string, brls::BrlsKeyboardScancode> functionMap = {
+    {"enter", brls::BRLS_KBD_KEY_ENTER},
+    {"return", brls::BRLS_KBD_KEY_ENTER},
+    {"escape", brls::BRLS_KBD_KEY_ESCAPE},
+    {"esc", brls::BRLS_KBD_KEY_ESCAPE},
     {"f1", brls::BRLS_KBD_KEY_F1},
     {"f2", brls::BRLS_KBD_KEY_F2},
     {"f3", brls::BRLS_KBD_KEY_F3},

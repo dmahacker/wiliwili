@@ -31,6 +31,9 @@
 #include "utils/ban_list.hpp"
 #include "utils/string_helper.hpp"
 #include "utils/shortcut_helper.hpp"
+#include "utils/base_shortcut_helper.hpp"
+#include "utils/shortcut_binding.hpp"
+#include "utils/shortcut_capture_helper.hpp"
 #include "presenter/video_detail.hpp"
 #include "activity/player_activity.hpp"
 #include "activity/search_activity_tv.hpp"
@@ -149,6 +152,12 @@ std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
     {SettingItem::PLAYER_ASPECT, {"player_aspect", {"-1", "-2", "-3", "4:3", "16:9"}, {}, 0}},
     {SettingItem::HTTP_PROXY, {"http_proxy", {}, {}, 0}},
     {SettingItem::DANMAKU_STYLE_FONT, {"danmaku_style_font", {"stroke", "incline", "shadow", "pure"}, {}, 0}},
+    {SettingItem::SHORTCUT_CONFIRM, {"shortcut_confirm", {}, {}, 0}},
+    {SettingItem::SHORTCUT_BACK, {"shortcut_back", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_UP, {"shortcut_navigate_up", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_DOWN, {"shortcut_navigate_down", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_LEFT, {"shortcut_navigate_left", {}, {}, 0}},
+    {SettingItem::SHORTCUT_NAVIGATE_RIGHT, {"shortcut_navigate_right", {}, {}, 0}},
     {SettingItem::SHORTCUT_REFRESH, {"shortcut_refresh", {}, {}, 0}},
     {SettingItem::SHORTCUT_SEARCH, {"shortcut_search", {}, {}, 0}},
     {SettingItem::SHORTCUT_LAST, {"shortcut_last", {}, {}, 0}},
@@ -714,38 +723,56 @@ void ProgramConfig::load() {
     brls::Application::setDeactivatedFPS(getSettingItem(SettingItem::DEACTIVATED_FPS, 5));
 
     // 初始化快捷键
-    ShortcutHelper::setRefresh(getSettingItem(SettingItem::SHORTCUT_REFRESH, std::string{
-#ifdef __APPLE__
-                                                  "meta-r"
-#else
-                                                  "ctrl-r"
-#endif
-                                              }));
-    ShortcutHelper::setSearch(getSettingItem(SettingItem::SHORTCUT_SEARCH, std::string{
-#ifdef __APPLE__
-                                                 "meta-f"
-#else
-                                                 "ctrl-f"
-#endif
-                                             }));
+    BaseShortcutHelper::loadFromConfig(*this);
 
-    ShortcutHelper::setLast(getSettingItem(SettingItem::SHORTCUT_LAST, std::string{"pgup"}));
-    ShortcutHelper::setNext(getSettingItem(SettingItem::SHORTCUT_NEXT, std::string{"pgdn"}));
-    ShortcutHelper::setLastSub(getSettingItem(SettingItem::SHORTCUT_LAST_SUB, std::string{"shift-pgup"}));
-    ShortcutHelper::setNextSub(getSettingItem(SettingItem::SHORTCUT_NEXT_SUB, std::string{"shift-pgdn"}));
-    ShortcutHelper::setVolumeUp(getSettingItem(SettingItem::SHORTCUT_VOLUME_UP, std::string{"0"}));
-    ShortcutHelper::setVolumeDown(getSettingItem(SettingItem::SHORTCUT_VOLUME_DOWN, std::string{"9"}));
-    ShortcutHelper::setDanmaku(getSettingItem(SettingItem::SHORTCUT_DANMAKU, std::string{"d"}));
-    ShortcutHelper::setVideoProfile(getSettingItem(SettingItem::SHORTCUT_VIDEO_PROFILE, std::string{"f1"}));
-    ShortcutHelper::setVideoQuality(getSettingItem(SettingItem::SHORTCUT_VIDEO_QUALITY, std::string{"f2"}));
-    ShortcutHelper::setVideoSpeed(getSettingItem(SettingItem::SHORTCUT_VIDEO_SPEED, std::string{"f3"}));
-    ShortcutHelper::setPlaylist(getSettingItem(SettingItem::SHORTCUT_PLAYLIST, std::string{"f4"}));
-    ShortcutHelper::setSetting(getSettingItem(SettingItem::SHORTCUT_SETTING, std::string{"f5"}));
-    ShortcutHelper::setVideoSpeedUp(getSettingItem(SettingItem::SHORTCUT_VIDEO_SPEEDUP, std::string{"p"}));
-    ShortcutHelper::setForward(getSettingItem(SettingItem::SHORTCUT_FORWARD, std::string{"]"}));
-    ShortcutHelper::setRewind(getSettingItem(SettingItem::SHORTCUT_REWIND, std::string{"["}));
-    ShortcutHelper::setVideoOsd(getSettingItem(SettingItem::SHORTCUT_VIDEO_OSD, std::string{"o"}));
-    ShortcutHelper::setVideoPause(getSettingItem(SettingItem::SHORTCUT_VIDEO_PAUSE, std::string{"space"}));
+    auto loadShortcut = [this](ShortcutAction action, SettingItem item, const std::string& defaultConfig,
+                               void (*setShortcut)(const std::string&)) {
+        const std::string config = getSettingItem(item, defaultConfig);
+        const ShortcutBinding binding = ShortcutBindingHelper::parseBinding(config);
+        ShortcutCaptureHelper::setNativeShortcut(action, binding);
+        if (binding.device == ShortcutDevice::WindowsAppCommand || binding.device == ShortcutDevice::WindowsRawHid ||
+            (binding.device == ShortcutDevice::Keyboard && binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN &&
+             binding.nativeCode > 0)) {
+            setShortcut(defaultConfig);
+            return;
+        }
+        setShortcut(config);
+    };
+
+    loadShortcut(ShortcutAction::Refresh, SettingItem::SHORTCUT_REFRESH, std::string{
+#ifdef __APPLE__
+                     "meta-r"
+#else
+                     "ctrl-r"
+#endif
+                 },
+                 ShortcutHelper::setRefresh);
+    loadShortcut(ShortcutAction::Search, SettingItem::SHORTCUT_SEARCH, std::string{
+#ifdef __APPLE__
+                     "meta-f"
+#else
+                     "ctrl-f"
+#endif
+                 },
+                 ShortcutHelper::setSearch);
+
+    loadShortcut(ShortcutAction::Last, SettingItem::SHORTCUT_LAST, std::string{"pgup"}, ShortcutHelper::setLast);
+    loadShortcut(ShortcutAction::Next, SettingItem::SHORTCUT_NEXT, std::string{"pgdn"}, ShortcutHelper::setNext);
+    loadShortcut(ShortcutAction::LastSub, SettingItem::SHORTCUT_LAST_SUB, std::string{"shift-pgup"}, ShortcutHelper::setLastSub);
+    loadShortcut(ShortcutAction::NextSub, SettingItem::SHORTCUT_NEXT_SUB, std::string{"shift-pgdn"}, ShortcutHelper::setNextSub);
+    loadShortcut(ShortcutAction::VolumeUp, SettingItem::SHORTCUT_VOLUME_UP, std::string{"0"}, ShortcutHelper::setVolumeUp);
+    loadShortcut(ShortcutAction::VolumeDown, SettingItem::SHORTCUT_VOLUME_DOWN, std::string{"9"}, ShortcutHelper::setVolumeDown);
+    loadShortcut(ShortcutAction::Danmaku, SettingItem::SHORTCUT_DANMAKU, std::string{"d"}, ShortcutHelper::setDanmaku);
+    loadShortcut(ShortcutAction::VideoProfile, SettingItem::SHORTCUT_VIDEO_PROFILE, std::string{"f1"}, ShortcutHelper::setVideoProfile);
+    loadShortcut(ShortcutAction::VideoQuality, SettingItem::SHORTCUT_VIDEO_QUALITY, std::string{"f2"}, ShortcutHelper::setVideoQuality);
+    loadShortcut(ShortcutAction::VideoSpeed, SettingItem::SHORTCUT_VIDEO_SPEED, std::string{"f3"}, ShortcutHelper::setVideoSpeed);
+    loadShortcut(ShortcutAction::Playlist, SettingItem::SHORTCUT_PLAYLIST, std::string{"f4"}, ShortcutHelper::setPlaylist);
+    loadShortcut(ShortcutAction::Setting, SettingItem::SHORTCUT_SETTING, std::string{"f5"}, ShortcutHelper::setSetting);
+    loadShortcut(ShortcutAction::VideoSpeedUp, SettingItem::SHORTCUT_VIDEO_SPEEDUP, std::string{"p"}, ShortcutHelper::setVideoSpeedUp);
+    loadShortcut(ShortcutAction::Forward, SettingItem::SHORTCUT_FORWARD, std::string{"]"}, ShortcutHelper::setForward);
+    loadShortcut(ShortcutAction::Rewind, SettingItem::SHORTCUT_REWIND, std::string{"["}, ShortcutHelper::setRewind);
+    loadShortcut(ShortcutAction::VideoOsd, SettingItem::SHORTCUT_VIDEO_OSD, std::string{"o"}, ShortcutHelper::setVideoOsd);
+    loadShortcut(ShortcutAction::VideoPause, SettingItem::SHORTCUT_VIDEO_PAUSE, std::string{"space"}, ShortcutHelper::setVideoPause);
 
     // 初始化一些在创建窗口之后才能初始化的内容
     brls::Application::getWindowCreationDoneEvent()->subscribe([this]() {
@@ -801,6 +828,7 @@ void ProgramConfig::load() {
         // Init keyboard shortcut
         brls::Application::getPlatform()->getInputManager()->getKeyboardKeyStateChanged()->subscribe(
             [](brls::KeyState state) {
+                if (BaseShortcutHelper::dispatch(state)) return;
                 if (!state.pressed) return;
                 switch (state.key) {
 #ifndef __APPLE__
