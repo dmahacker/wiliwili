@@ -4,11 +4,14 @@
 
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <utility>
 
 namespace {
+std::mutex nativeShortcutMutex;
 ShortcutCaptureStatus captureStatus = ShortcutCaptureStatus::Idle;
 uint64_t captureGeneration = 0;
+uint64_t nativeShortcutGeneration = 0;
 std::function<void(const ShortcutBinding&)> nativeCaptureCallback;
 std::function<bool(ShortcutAction)> nativeDispatchCallback;
 std::map<ShortcutAction, ShortcutBinding> nativeShortcuts;
@@ -26,63 +29,132 @@ bool matchesNativeShortcut(const ShortcutBinding& lhs, const ShortcutBinding& rh
 }
 
 void ShortcutCaptureHelper::startCapture() {
-    captureStatus = ShortcutCaptureStatus::Capturing;
-    ++captureGeneration;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        captureStatus = ShortcutCaptureStatus::Capturing;
+        ++captureGeneration;
+    }
     startNativeCapture();
 }
 
 void ShortcutCaptureHelper::stopCapture() {
-    captureStatus = ShortcutCaptureStatus::Idle;
-    ++captureGeneration;
-    if (!hasNativeShortcuts()) stopNativeCapture();
-    nativeCaptureCallback = nullptr;
+    bool shouldStopNativeCapture = false;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        captureStatus = ShortcutCaptureStatus::Idle;
+        ++captureGeneration;
+        nativeCaptureCallback     = nullptr;
+        shouldStopNativeCapture   = nativeShortcuts.empty();
+    }
+    if (shouldStopNativeCapture) stopNativeCapture();
 }
 
-bool ShortcutCaptureHelper::isCapturing() { return captureStatus == ShortcutCaptureStatus::Capturing; }
+bool ShortcutCaptureHelper::isCapturing() {
+    std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+    return captureStatus == ShortcutCaptureStatus::Capturing;
+}
 
 void ShortcutCaptureHelper::setNativeCaptureCallback(std::function<void(const ShortcutBinding&)> callback) {
+    std::lock_guard<std::mutex> lock(nativeShortcutMutex);
     nativeCaptureCallback = std::move(callback);
 }
 
 void ShortcutCaptureHelper::publishNativeCapture(const ShortcutBinding& binding) {
-    if (!isCapturing() || binding.device == ShortcutDevice::Unsupported || !nativeCaptureCallback) return;
-    const uint64_t generation = captureGeneration;
+    if (binding.device == ShortcutDevice::Unsupported) return;
+
+    uint64_t generation = 0;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        if (captureStatus != ShortcutCaptureStatus::Capturing || !nativeCaptureCallback) return;
+        generation = captureGeneration;
+    }
+
     brls::sync([binding, generation]() {
-        if (!isCapturing() || generation != captureGeneration || !nativeCaptureCallback) return;
-        nativeCaptureCallback(binding);
+        std::function<void(const ShortcutBinding&)> callback;
+        {
+            std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+            if (captureStatus != ShortcutCaptureStatus::Capturing || generation != captureGeneration ||
+                !nativeCaptureCallback)
+                return;
+            callback = nativeCaptureCallback;
+        }
+        callback(binding);
     });
 }
 
 void ShortcutCaptureHelper::setNativeDispatchCallback(std::function<bool(ShortcutAction)> callback) {
+    std::lock_guard<std::mutex> lock(nativeShortcutMutex);
     nativeDispatchCallback = std::move(callback);
 }
 
 void ShortcutCaptureHelper::setNativeShortcut(ShortcutAction action, const ShortcutBinding& binding) {
     if (!isNativeShortcutBinding(binding)) {
-        nativeShortcuts.erase(action);
-        if (!isCapturing() && !hasNativeShortcuts()) stopNativeCapture();
+        bool shouldStopNativeCapture = false;
+        {
+            std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+            nativeShortcuts.erase(action);
+            ++nativeShortcutGeneration;
+            shouldStopNativeCapture = captureStatus != ShortcutCaptureStatus::Capturing && nativeShortcuts.empty();
+        }
+        if (shouldStopNativeCapture) stopNativeCapture();
         return;
     }
 
-    nativeShortcuts[action] = binding;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        nativeShortcuts[action] = binding;
+        ++nativeShortcutGeneration;
+    }
     startNativeCapture();
 }
 
 bool ShortcutCaptureHelper::publishNativeShortcut(const ShortcutBinding& binding) {
-    if (binding.device == ShortcutDevice::Unsupported || !nativeDispatchCallback) return false;
+    if (binding.device == ShortcutDevice::Unsupported) return false;
 
-    for (const auto& item : nativeShortcuts) {
-        if (matchesNativeShortcut(item.second, binding)) return nativeDispatchCallback(item.first);
+    ShortcutAction action = ShortcutAction::Confirm;
+    uint64_t shortcutGeneration = 0;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        if (!nativeDispatchCallback) return false;
+
+        bool matched = false;
+        for (const auto& item : nativeShortcuts) {
+            if (!matchesNativeShortcut(item.second, binding)) continue;
+            action  = item.first;
+            matched = true;
+            break;
+        }
+        if (!matched) return false;
+        shortcutGeneration = nativeShortcutGeneration;
     }
-    return false;
+
+    brls::sync([action, shortcutGeneration]() {
+        std::function<bool(ShortcutAction)> callback;
+        {
+            std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+            if (shortcutGeneration != nativeShortcutGeneration || !nativeDispatchCallback) return;
+            callback = nativeDispatchCallback;
+        }
+        callback(action);
+    });
+    return true;
 }
 
 void ShortcutCaptureHelper::clearNativeShortcuts() {
-    nativeShortcuts.clear();
-    if (!isCapturing()) stopNativeCapture();
+    bool shouldStopNativeCapture = false;
+    {
+        std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+        nativeShortcuts.clear();
+        ++nativeShortcutGeneration;
+        shouldStopNativeCapture = captureStatus != ShortcutCaptureStatus::Capturing;
+    }
+    if (shouldStopNativeCapture) stopNativeCapture();
 }
 
-bool ShortcutCaptureHelper::hasNativeShortcuts() { return !nativeShortcuts.empty(); }
+bool ShortcutCaptureHelper::hasNativeShortcuts() {
+    std::lock_guard<std::mutex> lock(nativeShortcutMutex);
+    return !nativeShortcuts.empty();
+}
 
 #ifndef _WIN32
 void ShortcutCaptureHelper::startNativeCapture() {}

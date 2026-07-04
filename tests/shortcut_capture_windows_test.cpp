@@ -107,6 +107,8 @@ int main() {
     ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, appCommandBack);
     ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(appCommandBack),
                  "Browser Back native shortcut should be consumed at runtime");
+    ok &= expect(!runtimeDispatched, "Browser Back native shortcut should queue runtime dispatch");
+    brls::drainSyncTasks();
     ok &= expect(runtimeDispatched, "Browser Back native shortcut should dispatch an action at runtime");
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Back native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
@@ -116,6 +118,8 @@ int main() {
     ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, appCommandHome);
     ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(appCommandHome),
                  "Browser Home native shortcut should be consumed at runtime");
+    ok &= expect(!runtimeDispatched, "Browser Home native shortcut should queue runtime dispatch");
+    brls::drainSyncTasks();
     ok &= expect(runtimeDispatched, "Browser Home native shortcut should dispatch an action at runtime");
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Home native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
@@ -174,9 +178,22 @@ int main() {
     ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, rawHidKey);
     ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(rawHidKey),
                  "Raw HID native shortcut should be consumed at runtime");
+    ok &= expect(!runtimeDispatched, "Raw HID native shortcut should queue runtime dispatch");
+    brls::drainSyncTasks();
     ok &= expect(runtimeDispatched, "Raw HID native shortcut should dispatch an action at runtime");
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Raw HID native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
+
+    dispatchedAction = ShortcutAction::Confirm;
+    runtimeDispatched = false;
+    ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, rawHidKey);
+    ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(rawHidKey),
+                 "Queued Raw HID native shortcut should be consumed before shortcuts are cleared");
+    ShortcutCaptureHelper::clearNativeShortcuts();
+    brls::drainSyncTasks();
+    ok &= expect(!runtimeDispatched, "Queued Raw HID native shortcut should be dropped after shortcuts are cleared");
+    ok &= expect(dispatchedAction == ShortcutAction::Confirm,
+                 "Dropped Raw HID native shortcut should not change dispatched action");
 
     return ok ? 0 : 1;
 }
