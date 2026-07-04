@@ -133,6 +133,8 @@ static std::string appCommandDisplayName(int command) {
             return "Browser Forward";
         case 8:
             return "Mute";
+        case 7:
+            return "Browser Home";
         case 9:
             return "Volume Down";
         case 10:

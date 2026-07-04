@@ -70,6 +70,7 @@ constexpr int APPCOMMAND_VOLUME_MUTE = 8;
 constexpr int APPCOMMAND_VOLUME_DOWN = 9;
 constexpr int APPCOMMAND_VOLUME_UP = 10;
 constexpr int APPCOMMAND_MEDIA_NEXTTRACK = 11;
+constexpr int APPCOMMAND_BROWSER_HOME = 7;
 constexpr int APPCOMMAND_MEDIA_PREVIOUSTRACK = 12;
 constexpr int APPCOMMAND_MEDIA_STOP = 13;
 constexpr int APPCOMMAND_MEDIA_PLAY_PAUSE = 14;
@@ -206,6 +207,8 @@ std::string keyToken(int key) {
             return "up";
         case GLFW_KEY_PAGE_UP:
             return "pgup";
+        case VK_BROWSER_HOME:
+            return APPCOMMAND_BROWSER_HOME;
         case GLFW_KEY_PAGE_DOWN:
             return "pgdn";
         case GLFW_KEY_HOME:
@@ -308,3 +311,5 @@ void ShortcutCaptureHelper::stopNativeCapture() {
     nativeKeyboardHook = nullptr;
 }
 #endif
+        case APPCOMMAND_BROWSER_HOME:
+            return appCommandBinding(command, "Browser Home");

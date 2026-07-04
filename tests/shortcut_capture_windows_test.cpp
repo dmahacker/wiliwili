@@ -9,6 +9,7 @@ constexpr int GLFW_KEY_UNKNOWN = -1;
 constexpr int GLFW_PRESS = 1;
 constexpr int SDL_SCANCODE_AC_BACK = 270;
 constexpr int APPCOMMAND_BROWSER_BACKWARD = 1;
+constexpr int APPCOMMAND_BROWSER_HOME = 7;
 
 bool expect(bool condition, const std::string& message) {
     if (condition) return true;
@@ -52,6 +53,20 @@ int main() {
     ok &= expect(parsedAppCommandBack.display == "Browser Back", "App command config should restore browser back display");
 
     bool callbackCalled = false;
+    const auto appCommandHome = ShortcutCaptureHelper::mapWindowsAppCommandEvent(APPCOMMAND_BROWSER_HOME);
+    ok &= expect(appCommandHome.device == ShortcutDevice::WindowsAppCommand, "Browser Home app command should be recognized");
+    ok &= expect(appCommandHome.nativeCode == APPCOMMAND_BROWSER_HOME, "Browser Home app command should be preserved");
+    ok &= expect(appCommandHome.display == "Browser Home", "Browser Home app command should have browser home display");
+    ok &= expect(ShortcutBindingHelper::bindingConfigKey(appCommandHome) == "appcommand-7",
+                 "Browser Home app command should serialize to stable config");
+
+    const auto parsedAppCommandHome = ShortcutBindingHelper::parseBinding("appcommand-7");
+    ok &= expect(parsedAppCommandHome.device == ShortcutDevice::WindowsAppCommand,
+                 "Browser Home config should parse as Windows app command binding");
+    ok &= expect(parsedAppCommandHome.nativeCode == APPCOMMAND_BROWSER_HOME,
+                 "Browser Home config should preserve native command");
+    ok &= expect(parsedAppCommandHome.display == "Browser Home", "Browser Home config should restore browser home display");
+
     ShortcutCaptureHelper::setNativeCaptureCallback([&](const ShortcutBinding& binding) {
         callbackCalled = binding.device == ShortcutDevice::WindowsAppCommand &&
                          binding.nativeCode == APPCOMMAND_BROWSER_BACKWARD;
@@ -76,4 +91,13 @@ int main() {
     ShortcutCaptureHelper::clearNativeShortcuts();
 
     return ok ? 0 : 1;
+    dispatchedAction = ShortcutAction::Confirm;
+    runtimeDispatched = false;
+    ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, appCommandHome);
+    ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(appCommandHome),
+                 "Browser Home native shortcut should be consumed at runtime");
+    ok &= expect(runtimeDispatched, "Browser Home native shortcut should dispatch an action at runtime");
+    ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Home native shortcut should dispatch Back action");
+    ShortcutCaptureHelper::clearNativeShortcuts();
+
 }
