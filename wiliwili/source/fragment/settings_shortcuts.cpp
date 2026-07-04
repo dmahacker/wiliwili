@@ -61,6 +61,7 @@ bool shortcutEditorSaveBinding(ShortcutAction action, const ShortcutBinding& bin
     if (binding.device == ShortcutDevice::Keyboard && binding.key.code != brls::BRLS_KBD_KEY_UNKNOWN) {
         if (!ShortcutBindingHelper::applyBinding(action, binding)) return false;
     }
+    ShortcutCaptureHelper::setNativeShortcut(action, binding);
 
     SettingItem settingItem{};
     if (!shortcutEditorSettingItem(action, settingItem)) return false;

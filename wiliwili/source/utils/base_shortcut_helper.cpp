@@ -5,6 +5,8 @@
 #include "utils/base_shortcut_helper.hpp"
 
 #include "utils/config_helper.hpp"
+#include "utils/shortcut_binding.hpp"
+#include "utils/shortcut_capture_helper.hpp"
 
 static bool shortcutMatchesKeyState(const brls::BrlsKeyCombination& shortcut, const brls::KeyState& state) {
     return shortcut.code != brls::BRLS_KBD_KEY_UNKNOWN && shortcut.code == state.key && shortcut.mod == state.mods;
@@ -32,13 +34,58 @@ static bool dispatchButtonOnce(const brls::BrlsKeyCombination& shortcut, const b
     return true;
 }
 
+static void loadBaseShortcut(ShortcutAction action, const std::string& config) {
+    ShortcutCaptureHelper::setNativeShortcut(action, ShortcutBindingHelper::parseBinding(config));
+}
+
+static bool dispatchNativeBaseShortcut(ShortcutAction action) {
+    switch (action) {
+        case ShortcutAction::Confirm:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_A, false);
+            return true;
+        case ShortcutAction::Back:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_B, false);
+            return true;
+        case ShortcutAction::NavigateUp:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_NAV_UP, false);
+            return true;
+        case ShortcutAction::NavigateDown:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_NAV_DOWN, false);
+            return true;
+        case ShortcutAction::NavigateLeft:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_NAV_LEFT, false);
+            return true;
+        case ShortcutAction::NavigateRight:
+            brls::Application::onControllerButtonPressed(brls::BUTTON_NAV_RIGHT, false);
+            return true;
+        default:
+            return false;
+    }
+}
+
 void BaseShortcutHelper::loadFromConfig(ProgramConfig& config) {
-    setConfirm(config.getSettingItem(SettingItem::SHORTCUT_CONFIRM, std::string{"enter"}));
-    setBack(config.getSettingItem(SettingItem::SHORTCUT_BACK, std::string{"escape"}));
-    setNavigateUp(config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_UP, std::string{"up"}));
-    setNavigateDown(config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_DOWN, std::string{"down"}));
-    setNavigateLeft(config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_LEFT, std::string{"left"}));
-    setNavigateRight(config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_RIGHT, std::string{"right"}));
+    ShortcutCaptureHelper::setNativeDispatchCallback(dispatchNativeBaseShortcut);
+
+    const std::string confirm = config.getSettingItem(SettingItem::SHORTCUT_CONFIRM, std::string{"enter"});
+    const std::string back = config.getSettingItem(SettingItem::SHORTCUT_BACK, std::string{"escape"});
+    const std::string navigateUp = config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_UP, std::string{"up"});
+    const std::string navigateDown = config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_DOWN, std::string{"down"});
+    const std::string navigateLeft = config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_LEFT, std::string{"left"});
+    const std::string navigateRight = config.getSettingItem(SettingItem::SHORTCUT_NAVIGATE_RIGHT, std::string{"right"});
+
+    setConfirm(confirm);
+    setBack(back);
+    setNavigateUp(navigateUp);
+    setNavigateDown(navigateDown);
+    setNavigateLeft(navigateLeft);
+    setNavigateRight(navigateRight);
+
+    loadBaseShortcut(ShortcutAction::Confirm, confirm);
+    loadBaseShortcut(ShortcutAction::Back, back);
+    loadBaseShortcut(ShortcutAction::NavigateUp, navigateUp);
+    loadBaseShortcut(ShortcutAction::NavigateDown, navigateDown);
+    loadBaseShortcut(ShortcutAction::NavigateLeft, navigateLeft);
+    loadBaseShortcut(ShortcutAction::NavigateRight, navigateRight);
 }
 
 bool BaseShortcutHelper::dispatch(const brls::KeyState& state) {
