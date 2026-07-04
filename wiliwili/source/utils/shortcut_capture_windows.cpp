@@ -48,9 +48,13 @@ constexpr int SDL_SCANCODE_AUDIOPREV = 259;
 constexpr int SDL_SCANCODE_AUDIOSTOP = 260;
 constexpr int SDL_SCANCODE_AUDIOPLAY = 261;
 constexpr int SDL_SCANCODE_AUDIOMUTE = 262;
+constexpr int SDL_SCANCODE_AC_BACK = 270;
+constexpr int SDL_SCANCODE_AC_FORWARD = 271;
 constexpr int SDL_SCANCODE_VOLUMEUP = 128;
 constexpr int SDL_SCANCODE_VOLUMEDOWN = 129;
 
+constexpr int APPCOMMAND_BROWSER_BACKWARD = 1;
+constexpr int APPCOMMAND_BROWSER_FORWARD = 2;
 constexpr int APPCOMMAND_VOLUME_MUTE = 8;
 constexpr int APPCOMMAND_VOLUME_DOWN = 9;
 constexpr int APPCOMMAND_VOLUME_UP = 10;
@@ -173,6 +177,10 @@ ShortcutBinding mediaScancodeBinding(int scancode) {
             return specialKeyboardBinding(scancode, "Media Play/Pause");
         case SDL_SCANCODE_AUDIOMUTE:
             return specialKeyboardBinding(scancode, "Mute");
+        case SDL_SCANCODE_AC_BACK:
+            return specialKeyboardBinding(scancode, "Browser Back");
+        case SDL_SCANCODE_AC_FORWARD:
+            return specialKeyboardBinding(scancode, "Browser Forward");
         case SDL_SCANCODE_VOLUMEUP:
             return specialKeyboardBinding(scancode, "Volume Up");
         case SDL_SCANCODE_VOLUMEDOWN:
@@ -195,6 +203,10 @@ ShortcutBinding ShortcutCaptureHelper::mapWindowsKeyboardEvent(int key, int scan
 
 ShortcutBinding ShortcutCaptureHelper::mapWindowsAppCommandEvent(int command) {
     switch (command) {
+        case APPCOMMAND_BROWSER_BACKWARD:
+            return appCommandBinding(command, "Browser Back");
+        case APPCOMMAND_BROWSER_FORWARD:
+            return appCommandBinding(command, "Browser Forward");
         case APPCOMMAND_VOLUME_MUTE:
             return appCommandBinding(command, "Mute");
         case APPCOMMAND_VOLUME_DOWN:
