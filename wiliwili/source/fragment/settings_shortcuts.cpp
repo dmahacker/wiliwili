@@ -56,10 +56,11 @@ ShortcutBinding shortcutEditorCaptureBinding(brls::BrlsKeyboardScancode key, sho
 }
 
 bool shortcutEditorSaveBinding(ShortcutAction action, const ShortcutBinding& binding) {
-    if (binding.device != ShortcutDevice::Keyboard) return false;
     const std::string configKey = ShortcutBindingHelper::bindingConfigKey(binding);
     if (configKey.empty()) return false;
-    if (!ShortcutBindingHelper::applyBinding(action, binding)) return false;
+    if (binding.device == ShortcutDevice::Keyboard && binding.key.code != brls::BRLS_KBD_KEY_UNKNOWN) {
+        if (!ShortcutBindingHelper::applyBinding(action, binding)) return false;
+    }
 
     SettingItem settingItem{};
     if (!shortcutEditorSettingItem(action, settingItem)) return false;
@@ -121,13 +122,20 @@ void SettingsShortcuts::openCaptureDialog(ShortcutAction action, brls::RadioCell
                    brls::getStr("shortcuts/current_binding") + ": " + binding;
     auto* dialog = new brls::Dialog(message);
     this->unsubscribeKeyboardCapture();
+    ShortcutCaptureHelper::setNativeCaptureCallback([this, action, cell, dialog](const ShortcutBinding& captured) {
+        if (!shortcutEditorSaveBinding(action, captured)) return;
+
+        ShortcutCaptureHelper::stopCapture();
+        this->updateCellTitle(action, cell);
+        dialog->close();
+    });
     ShortcutCaptureHelper::startCapture();
     this->keyboardCaptureSubscription =
         brls::Application::getPlatform()->getInputManager()->getKeyboardKeyStateChanged()->subscribe(
             [this, action, cell, dialog](brls::KeyState state) {
                 if (!ShortcutCaptureHelper::isCapturing()) return;
                 const auto captured = shortcutEditorCaptureBinding(state.key, state.mods, state.pressed);
-                if (captured.device != ShortcutDevice::Keyboard) return;
+                if (captured.device == ShortcutDevice::Unsupported) return;
                 if (!shortcutEditorSaveBinding(action, captured)) return;
 
                 ShortcutCaptureHelper::stopCapture();

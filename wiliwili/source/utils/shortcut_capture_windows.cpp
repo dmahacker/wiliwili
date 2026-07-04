@@ -2,6 +2,13 @@
 
 #include <string>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
 namespace {
 constexpr int GLFW_PRESS = 1;
 constexpr int GLFW_KEY_UNKNOWN = -1;
@@ -65,6 +72,10 @@ constexpr int APPCOMMAND_MEDIA_PLAY_PAUSE = 14;
 constexpr int APPCOMMAND_MEDIA_PLAY = 46;
 constexpr int APPCOMMAND_MEDIA_PAUSE = 47;
 
+#ifdef _WIN32
+HHOOK nativeKeyboardHook = nullptr;
+#endif
+
 ShortcutBinding unsupportedBinding() { return {}; }
 
 ShortcutBinding specialKeyboardBinding(int nativeCode, const std::string& display) {
@@ -82,6 +93,47 @@ ShortcutBinding appCommandBinding(int command, const std::string& display) {
     binding.display = display;
     return binding;
 }
+
+#ifdef _WIN32
+int appCommandFromVirtualKey(DWORD virtualKey) {
+    switch (virtualKey) {
+        case VK_BROWSER_BACK:
+            return APPCOMMAND_BROWSER_BACKWARD;
+        case VK_BROWSER_FORWARD:
+            return APPCOMMAND_BROWSER_FORWARD;
+        case VK_VOLUME_MUTE:
+            return APPCOMMAND_VOLUME_MUTE;
+        case VK_VOLUME_DOWN:
+            return APPCOMMAND_VOLUME_DOWN;
+        case VK_VOLUME_UP:
+            return APPCOMMAND_VOLUME_UP;
+        case VK_MEDIA_NEXT_TRACK:
+            return APPCOMMAND_MEDIA_NEXTTRACK;
+        case VK_MEDIA_PREV_TRACK:
+            return APPCOMMAND_MEDIA_PREVIOUSTRACK;
+        case VK_MEDIA_STOP:
+            return APPCOMMAND_MEDIA_STOP;
+        case VK_MEDIA_PLAY_PAUSE:
+            return APPCOMMAND_MEDIA_PLAY_PAUSE;
+        default:
+            return 0;
+    }
+}
+
+LRESULT CALLBACK nativeKeyboardProc(int code, WPARAM wParam, LPARAM lParam) {
+    if (code == HC_ACTION && ShortcutCaptureHelper::isCapturing() &&
+        (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+        const auto* event = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        const int command = appCommandFromVirtualKey(event->vkCode);
+        if (command != 0) {
+            const auto binding = ShortcutCaptureHelper::mapWindowsAppCommandEvent(command);
+            ShortcutCaptureHelper::publishNativeCapture(binding);
+            return 1;
+        }
+    }
+    return CallNextHookEx(nativeKeyboardHook, code, wParam, lParam);
+}
+#endif
 
 std::string modifierPrefix(int mods) {
     std::string config;
@@ -229,3 +281,16 @@ ShortcutBinding ShortcutCaptureHelper::mapWindowsAppCommandEvent(int command) {
             return unsupportedBinding();
     }
 }
+
+#ifdef _WIN32
+void ShortcutCaptureHelper::startNativeCapture() {
+    if (nativeKeyboardHook != nullptr) return;
+    nativeKeyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, nativeKeyboardProc, GetModuleHandleW(nullptr), 0);
+}
+
+void ShortcutCaptureHelper::stopNativeCapture() {
+    if (nativeKeyboardHook == nullptr) return;
+    UnhookWindowsHookEx(nativeKeyboardHook);
+    nativeKeyboardHook = nullptr;
+}
+#endif
