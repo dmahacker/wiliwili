@@ -1,10 +1,14 @@
 #include "utils/shortcut_capture_helper.hpp"
 
+#include <borealis/core/thread.hpp>
+
+#include <cstdint>
 #include <map>
 #include <utility>
 
 namespace {
 ShortcutCaptureStatus captureStatus = ShortcutCaptureStatus::Idle;
+uint64_t captureGeneration = 0;
 std::function<void(const ShortcutBinding&)> nativeCaptureCallback;
 std::function<bool(ShortcutAction)> nativeDispatchCallback;
 std::map<ShortcutAction, ShortcutBinding> nativeShortcuts;
@@ -23,11 +27,13 @@ bool matchesNativeShortcut(const ShortcutBinding& lhs, const ShortcutBinding& rh
 
 void ShortcutCaptureHelper::startCapture() {
     captureStatus = ShortcutCaptureStatus::Capturing;
+    ++captureGeneration;
     startNativeCapture();
 }
 
 void ShortcutCaptureHelper::stopCapture() {
     captureStatus = ShortcutCaptureStatus::Idle;
+    ++captureGeneration;
     if (!hasNativeShortcuts()) stopNativeCapture();
     nativeCaptureCallback = nullptr;
 }
@@ -40,7 +46,11 @@ void ShortcutCaptureHelper::setNativeCaptureCallback(std::function<void(const Sh
 
 void ShortcutCaptureHelper::publishNativeCapture(const ShortcutBinding& binding) {
     if (!isCapturing() || binding.device == ShortcutDevice::Unsupported || !nativeCaptureCallback) return;
-    nativeCaptureCallback(binding);
+    const uint64_t generation = captureGeneration;
+    brls::sync([binding, generation]() {
+        if (!isCapturing() || generation != captureGeneration || !nativeCaptureCallback) return;
+        nativeCaptureCallback(binding);
+    });
 }
 
 void ShortcutCaptureHelper::setNativeDispatchCallback(std::function<bool(ShortcutAction)> callback) {

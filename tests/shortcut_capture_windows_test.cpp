@@ -1,8 +1,10 @@
 #include "utils/shortcut_capture_helper.hpp"
 #include "utils/shortcut_helper.hpp"
 
+#include <functional>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace {
 constexpr int GLFW_KEY_UNKNOWN = -1;
@@ -20,7 +22,17 @@ bool expect(bool condition, const std::string& message) {
 }
 
 namespace brls {
+std::vector<std::function<void()>> pendingSyncTasks;
+
 void Application::addToWatchedKeys(const BrlsKeyCombination) {}
+
+void sync(const std::function<void()>& func) { pendingSyncTasks.push_back(func); }
+
+void drainSyncTasks() {
+    auto tasks = pendingSyncTasks;
+    pendingSyncTasks.clear();
+    for (const auto& task : tasks) task();
+}
 }
 
 brls::BrlsKeyCombination ShortcutHelper::parseKey(const std::string& config) {
@@ -80,6 +92,8 @@ int main() {
     });
     ShortcutCaptureHelper::startCapture();
     ShortcutCaptureHelper::publishNativeCapture(appCommandBack);
+    ok &= expect(!callbackCalled, "Native capture callback should be queued for main thread");
+    brls::drainSyncTasks();
     ShortcutCaptureHelper::stopCapture();
     ok &= expect(callbackCalled, "Native capture callback should receive browser back binding while capturing");
 
@@ -150,6 +164,8 @@ int main() {
     });
     ShortcutCaptureHelper::startCapture();
     ShortcutCaptureHelper::publishNativeCapture(rawHidKey);
+    ok &= expect(!callbackCalled, "Raw HID capture callback should be queued for main thread");
+    brls::drainSyncTasks();
     ShortcutCaptureHelper::stopCapture();
     ok &= expect(callbackCalled, "Native capture callback should receive raw HID binding while capturing");
 
