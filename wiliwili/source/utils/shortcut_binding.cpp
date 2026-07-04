@@ -5,7 +5,9 @@
 #include "utils/shortcut_binding.hpp"
 
 #include <cctype>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 
 #include <pystring.h>
 
@@ -131,10 +133,10 @@ static std::string appCommandDisplayName(int command) {
             return "Browser Back";
         case 2:
             return "Browser Forward";
-        case 8:
-            return "Mute";
         case 7:
             return "Browser Home";
+        case 8:
+            return "Mute";
         case 9:
             return "Volume Down";
         case 10:
@@ -156,6 +158,15 @@ static std::string appCommandDisplayName(int command) {
     }
 }
 
+static int rawHidNativeCode(int reportId, int usage) { return (reportId << 16) | usage; }
+
+static std::string rawHidDisplayName(int nativeCode) {
+    std::ostringstream stream;
+    stream << "HID Consumer 0x" << std::uppercase << std::hex << std::setw(4) << std::setfill('0')
+           << (nativeCode & 0xFFFF);
+    return stream.str();
+}
+
 static ShortcutBinding nativeKeyboardBinding(int nativeCode) {
     ShortcutBinding binding;
     binding.device     = ShortcutDevice::Keyboard;
@@ -172,6 +183,14 @@ static ShortcutBinding appCommandBinding(int command) {
     return binding;
 }
 
+static ShortcutBinding rawHidBinding(int reportId, int usage) {
+    ShortcutBinding binding;
+    binding.device     = ShortcutDevice::WindowsRawHid;
+    binding.nativeCode = rawHidNativeCode(reportId, usage);
+    binding.display    = rawHidDisplayName(binding.nativeCode);
+    return binding;
+}
+
 static ShortcutBinding parseNativeBinding(const std::string& config) {
     int nativeCode = 0;
     if (config.rfind("scancode-", 0) == 0 && parseNonNegativeInt(config.substr(9), nativeCode)) {
@@ -179,6 +198,17 @@ static ShortcutBinding parseNativeBinding(const std::string& config) {
     }
     if (config.rfind("appcommand-", 0) == 0 && parseNonNegativeInt(config.substr(11), nativeCode)) {
         return appCommandBinding(nativeCode);
+    }
+    if (config.rfind("rawhid-", 0) == 0) {
+        const std::string value = config.substr(7);
+        const std::size_t separator = value.find('-');
+        int reportId = 0;
+        int usage = 0;
+        if (separator != std::string::npos && parseNonNegativeInt(value.substr(0, separator), reportId) &&
+            parseNonNegativeInt(value.substr(separator + 1), usage) && reportId >= 0 && reportId <= 0xFF &&
+            usage > 0 && usage <= 0xFFFF) {
+            return rawHidBinding(reportId, usage);
+        }
     }
     return {};
 }
@@ -268,6 +298,10 @@ std::string ShortcutBindingHelper::formatBinding(const ShortcutBinding& binding)
 std::string ShortcutBindingHelper::bindingConfigKey(const ShortcutBinding& binding) {
     if (binding.device == ShortcutDevice::WindowsAppCommand && binding.nativeCode > 0) {
         return "appcommand-" + std::to_string(binding.nativeCode);
+    }
+    if (binding.device == ShortcutDevice::WindowsRawHid && binding.nativeCode > 0) {
+        return "rawhid-" + std::to_string((binding.nativeCode >> 16) & 0xFF) + "-" +
+               std::to_string(binding.nativeCode & 0xFFFF);
     }
     if (binding.device != ShortcutDevice::Keyboard) return {};
     if (binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN && binding.nativeCode > 0) {

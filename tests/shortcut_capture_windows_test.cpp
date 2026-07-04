@@ -10,6 +10,7 @@ constexpr int GLFW_PRESS = 1;
 constexpr int SDL_SCANCODE_AC_BACK = 270;
 constexpr int APPCOMMAND_BROWSER_BACKWARD = 1;
 constexpr int APPCOMMAND_BROWSER_HOME = 7;
+constexpr int RAW_HID_CONSUMER_CF = (0x02 << 16) | 0x00CF;
 
 bool expect(bool condition, const std::string& message) {
     if (condition) return true;
@@ -52,7 +53,6 @@ int main() {
                  "App command config should preserve native command");
     ok &= expect(parsedAppCommandBack.display == "Browser Back", "App command config should restore browser back display");
 
-    bool callbackCalled = false;
     const auto appCommandHome = ShortcutCaptureHelper::mapWindowsAppCommandEvent(APPCOMMAND_BROWSER_HOME);
     ok &= expect(appCommandHome.device == ShortcutDevice::WindowsAppCommand, "Browser Home app command should be recognized");
     ok &= expect(appCommandHome.nativeCode == APPCOMMAND_BROWSER_HOME, "Browser Home app command should be preserved");
@@ -67,6 +67,7 @@ int main() {
                  "Browser Home config should preserve native command");
     ok &= expect(parsedAppCommandHome.display == "Browser Home", "Browser Home config should restore browser home display");
 
+    bool callbackCalled = false;
     ShortcutCaptureHelper::setNativeCaptureCallback([&](const ShortcutBinding& binding) {
         callbackCalled = binding.device == ShortcutDevice::WindowsAppCommand &&
                          binding.nativeCode == APPCOMMAND_BROWSER_BACKWARD;
@@ -90,7 +91,6 @@ int main() {
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Back native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
 
-    return ok ? 0 : 1;
     dispatchedAction = ShortcutAction::Confirm;
     runtimeDispatched = false;
     ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, appCommandHome);
@@ -100,4 +100,47 @@ int main() {
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Home native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
 
+    const unsigned char rawHomePress[] = {0x02, 0xCF, 0x00};
+    const unsigned char rawHomeRelease[] = {0x02, 0x00, 0x00};
+    const unsigned char rawShortReport[] = {0x02, 0xCF};
+    const auto rawHidKey = ShortcutCaptureHelper::mapWindowsRawInputHidReport(rawHomePress, sizeof(rawHomePress));
+    ok &= expect(rawHidKey.device == ShortcutDevice::WindowsRawHid,
+                 "Raw HID 0x02CF00 report should map to raw HID binding");
+    ok &= expect(rawHidKey.nativeCode == RAW_HID_CONSUMER_CF,
+                 "Raw HID 0x02CF00 report should preserve report id and usage");
+    ok &= expect(rawHidKey.display == "HID Consumer 0x00CF", "Raw HID 0x02CF00 report should have HID display");
+    ok &= expect(ShortcutBindingHelper::bindingConfigKey(rawHidKey) == "rawhid-2-207",
+                 "Raw HID 0x02CF00 report should serialize to stable config");
+
+    const auto parsedRawHid = ShortcutBindingHelper::parseBinding("rawhid-2-207");
+    ok &= expect(parsedRawHid.device == ShortcutDevice::WindowsRawHid,
+                 "Raw HID config should parse as Windows Raw HID binding");
+    ok &= expect(parsedRawHid.nativeCode == RAW_HID_CONSUMER_CF,
+                 "Raw HID config should preserve report id and usage");
+    ok &= expect(parsedRawHid.display == "HID Consumer 0x00CF", "Raw HID config should restore HID display");
+
+    const auto rawRelease = ShortcutCaptureHelper::mapWindowsRawInputHidReport(rawHomeRelease, sizeof(rawHomeRelease));
+    ok &= expect(rawRelease.device == ShortcutDevice::Unsupported, "Raw HID Browser Home release should be ignored");
+    const auto rawMalformed = ShortcutCaptureHelper::mapWindowsRawInputHidReport(rawShortReport, sizeof(rawShortReport));
+    ok &= expect(rawMalformed.device == ShortcutDevice::Unsupported, "Short Raw HID reports should be ignored");
+
+    callbackCalled = false;
+    ShortcutCaptureHelper::setNativeCaptureCallback([&](const ShortcutBinding& binding) {
+        callbackCalled = binding.device == ShortcutDevice::WindowsRawHid && binding.nativeCode == RAW_HID_CONSUMER_CF;
+    });
+    ShortcutCaptureHelper::startCapture();
+    ShortcutCaptureHelper::publishNativeCapture(rawHidKey);
+    ShortcutCaptureHelper::stopCapture();
+    ok &= expect(callbackCalled, "Native capture callback should receive raw HID binding while capturing");
+
+    dispatchedAction = ShortcutAction::Confirm;
+    runtimeDispatched = false;
+    ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, rawHidKey);
+    ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(rawHidKey),
+                 "Raw HID native shortcut should be consumed at runtime");
+    ok &= expect(runtimeDispatched, "Raw HID native shortcut should dispatch an action at runtime");
+    ok &= expect(dispatchedAction == ShortcutAction::Back, "Raw HID native shortcut should dispatch Back action");
+    ShortcutCaptureHelper::clearNativeShortcuts();
+
+    return ok ? 0 : 1;
 }

@@ -13,6 +13,7 @@
 enum class ShortcutDevice {
     Keyboard,
     WindowsAppCommand,
+    WindowsRawHid,
     Gamepad,
     Unsupported,
 };

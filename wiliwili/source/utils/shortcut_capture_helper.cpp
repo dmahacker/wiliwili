@@ -11,6 +11,7 @@ std::map<ShortcutAction, ShortcutBinding> nativeShortcuts;
 
 bool isNativeShortcutBinding(const ShortcutBinding& binding) {
     if (binding.device == ShortcutDevice::WindowsAppCommand) return binding.nativeCode > 0;
+    if (binding.device == ShortcutDevice::WindowsRawHid) return binding.nativeCode > 0;
     return binding.device == ShortcutDevice::Keyboard && binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN &&
            binding.nativeCode > 0;
 }

@@ -1,6 +1,10 @@
 #include "utils/shortcut_capture_helper.hpp"
 
+#include <cstddef>
 #include <string>
+#ifdef _WIN32
+#include <vector>
+#endif
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -66,11 +70,11 @@ constexpr int SDL_SCANCODE_VOLUMEDOWN = 129;
 #ifndef _WIN32
 constexpr int APPCOMMAND_BROWSER_BACKWARD = 1;
 constexpr int APPCOMMAND_BROWSER_FORWARD = 2;
+constexpr int APPCOMMAND_BROWSER_HOME = 7;
 constexpr int APPCOMMAND_VOLUME_MUTE = 8;
 constexpr int APPCOMMAND_VOLUME_DOWN = 9;
 constexpr int APPCOMMAND_VOLUME_UP = 10;
 constexpr int APPCOMMAND_MEDIA_NEXTTRACK = 11;
-constexpr int APPCOMMAND_BROWSER_HOME = 7;
 constexpr int APPCOMMAND_MEDIA_PREVIOUSTRACK = 12;
 constexpr int APPCOMMAND_MEDIA_STOP = 13;
 constexpr int APPCOMMAND_MEDIA_PLAY_PAUSE = 14;
@@ -80,6 +84,9 @@ constexpr int APPCOMMAND_MEDIA_PAUSE = 47;
 
 #ifdef _WIN32
 HHOOK nativeKeyboardHook = nullptr;
+HWND rawInputWindow = nullptr;
+ATOM rawInputWindowClass = 0;
+constexpr wchar_t RAW_INPUT_WINDOW_CLASS[] = L"WiliwiliShortcutRawInputWindow";
 #endif
 
 ShortcutBinding unsupportedBinding() { return {}; }
@@ -100,13 +107,108 @@ ShortcutBinding appCommandBinding(int command, const std::string& display) {
     return binding;
 }
 
+ShortcutBinding rawHidBinding(int reportId, int usage) {
+    ShortcutBinding binding;
+    binding.device = ShortcutDevice::WindowsRawHid;
+    binding.nativeCode = (reportId << 16) | usage;
+    binding.display = "HID Consumer 0x00CF";
+    return binding;
+}
+
 #ifdef _WIN32
+bool publishNativeBinding(const ShortcutBinding& binding) {
+    if (binding.device == ShortcutDevice::Unsupported) return false;
+    if (ShortcutCaptureHelper::isCapturing()) {
+        ShortcutCaptureHelper::publishNativeCapture(binding);
+        return true;
+    }
+    return ShortcutCaptureHelper::publishNativeShortcut(binding);
+}
+
+bool handleRawInput(HRAWINPUT rawInputHandle) {
+    UINT dataSize = 0;
+    if (GetRawInputData(rawInputHandle, RID_INPUT, nullptr, &dataSize, sizeof(RAWINPUTHEADER)) != 0 || dataSize == 0) {
+        return false;
+    }
+
+    std::vector<unsigned char> data(dataSize);
+    if (GetRawInputData(rawInputHandle, RID_INPUT, data.data(), &dataSize, sizeof(RAWINPUTHEADER)) != dataSize) {
+        return false;
+    }
+
+    const auto* rawInput = reinterpret_cast<const RAWINPUT*>(data.data());
+    if (rawInput->header.dwType != RIM_TYPEHID) return false;
+
+    const DWORD reportSize = rawInput->data.hid.dwSizeHid;
+    const DWORD reportCount = rawInput->data.hid.dwCount;
+    if (reportSize == 0 || reportCount == 0) return false;
+
+    bool handled = false;
+    const auto* reports = reinterpret_cast<const unsigned char*>(rawInput->data.hid.bRawData);
+    for (DWORD index = 0; index < reportCount; ++index) {
+        const auto binding = ShortcutCaptureHelper::mapWindowsRawInputHidReport(reports + index * reportSize, reportSize);
+        handled = publishNativeBinding(binding) || handled;
+    }
+    return handled;
+}
+
+LRESULT CALLBACK rawInputWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_INPUT) handleRawInput(reinterpret_cast<HRAWINPUT>(lParam));
+    return DefWindowProcW(window, message, wParam, lParam);
+}
+
+bool ensureRawInputWindow() {
+    if (rawInputWindow != nullptr) return true;
+
+    const HINSTANCE instance = GetModuleHandleW(nullptr);
+    if (rawInputWindowClass == 0) {
+        WNDCLASSEXW windowClass{};
+        windowClass.cbSize = sizeof(windowClass);
+        windowClass.lpfnWndProc = rawInputWindowProc;
+        windowClass.hInstance = instance;
+        windowClass.lpszClassName = RAW_INPUT_WINDOW_CLASS;
+        rawInputWindowClass = RegisterClassExW(&windowClass);
+        if (rawInputWindowClass == 0) return false;
+    }
+
+    rawInputWindow = CreateWindowExW(0, RAW_INPUT_WINDOW_CLASS, L"", WS_OVERLAPPED, 0, 0, 0, 0, nullptr, nullptr,
+                                     instance, nullptr);
+    if (rawInputWindow == nullptr) return false;
+
+    RAWINPUTDEVICE device{};
+    device.usUsagePage = 0x0C;
+    device.usUsage = 0x01;
+    device.dwFlags = RIDEV_INPUTSINK;
+    device.hwndTarget = rawInputWindow;
+    if (!RegisterRawInputDevices(&device, 1, sizeof(device))) {
+        DestroyWindow(rawInputWindow);
+        rawInputWindow = nullptr;
+        return false;
+    }
+    return true;
+}
+
+void destroyRawInputWindow() {
+    if (rawInputWindow == nullptr) return;
+
+    RAWINPUTDEVICE device{};
+    device.usUsagePage = 0x0C;
+    device.usUsage = 0x01;
+    device.dwFlags = RIDEV_REMOVE;
+    RegisterRawInputDevices(&device, 1, sizeof(device));
+
+    DestroyWindow(rawInputWindow);
+    rawInputWindow = nullptr;
+}
+
 int appCommandFromVirtualKey(DWORD virtualKey) {
     switch (virtualKey) {
         case VK_BROWSER_BACK:
             return APPCOMMAND_BROWSER_BACKWARD;
         case VK_BROWSER_FORWARD:
             return APPCOMMAND_BROWSER_FORWARD;
+        case VK_BROWSER_HOME:
+            return APPCOMMAND_BROWSER_HOME;
         case VK_VOLUME_MUTE:
             return APPCOMMAND_VOLUME_MUTE;
         case VK_VOLUME_DOWN:
@@ -207,8 +309,6 @@ std::string keyToken(int key) {
             return "up";
         case GLFW_KEY_PAGE_UP:
             return "pgup";
-        case VK_BROWSER_HOME:
-            return APPCOMMAND_BROWSER_HOME;
         case GLFW_KEY_PAGE_DOWN:
             return "pgdn";
         case GLFW_KEY_HOME:
@@ -276,6 +376,8 @@ ShortcutBinding ShortcutCaptureHelper::mapWindowsAppCommandEvent(int command) {
             return appCommandBinding(command, "Browser Back");
         case APPCOMMAND_BROWSER_FORWARD:
             return appCommandBinding(command, "Browser Forward");
+        case APPCOMMAND_BROWSER_HOME:
+            return appCommandBinding(command, "Browser Home");
         case APPCOMMAND_VOLUME_MUTE:
             return appCommandBinding(command, "Mute");
         case APPCOMMAND_VOLUME_DOWN:
@@ -299,17 +401,28 @@ ShortcutBinding ShortcutCaptureHelper::mapWindowsAppCommandEvent(int command) {
     }
 }
 
+ShortcutBinding ShortcutCaptureHelper::mapWindowsRawInputHidReport(const unsigned char* report, std::size_t size) {
+    if (report == nullptr || size < 3) return unsupportedBinding();
+    if (report[0] != 0x02) return unsupportedBinding();
+
+    const int usage = static_cast<int>(report[1]) | (static_cast<int>(report[2]) << 8);
+    if (usage == 0x00CF) return rawHidBinding(report[0], usage);
+    return unsupportedBinding();
+}
+
 #ifdef _WIN32
 void ShortcutCaptureHelper::startNativeCapture() {
-    if (nativeKeyboardHook != nullptr) return;
-    nativeKeyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, nativeKeyboardProc, GetModuleHandleW(nullptr), 0);
+    ensureRawInputWindow();
+    if (nativeKeyboardHook == nullptr) {
+        nativeKeyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, nativeKeyboardProc, GetModuleHandleW(nullptr), 0);
+    }
 }
 
 void ShortcutCaptureHelper::stopNativeCapture() {
-    if (nativeKeyboardHook == nullptr) return;
-    UnhookWindowsHookEx(nativeKeyboardHook);
-    nativeKeyboardHook = nullptr;
+    if (nativeKeyboardHook != nullptr) {
+        UnhookWindowsHookEx(nativeKeyboardHook);
+        nativeKeyboardHook = nullptr;
+    }
+    destroyRawInputWindow();
 }
 #endif
-        case APPCOMMAND_BROWSER_HOME:
-            return appCommandBinding(command, "Browser Home");

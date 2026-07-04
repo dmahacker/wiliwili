@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 
 #include "utils/shortcut_binding.hpp"
@@ -23,6 +24,7 @@ public:
 
     static ShortcutBinding mapWindowsKeyboardEvent(int key, int scancode, int action, int mods);
     static ShortcutBinding mapWindowsAppCommandEvent(int command);
+    static ShortcutBinding mapWindowsRawInputHidReport(const unsigned char* report, std::size_t size);
 
 private:
     static void startNativeCapture();
