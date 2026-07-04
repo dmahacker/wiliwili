@@ -136,6 +136,15 @@ LRESULT CALLBACK nativeKeyboardProc(int code, WPARAM wParam, LPARAM lParam) {
             return 1;
         }
     }
+    if (code == HC_ACTION && !ShortcutCaptureHelper::isCapturing() &&
+        (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+        const auto* event = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        const int command = appCommandFromVirtualKey(event->vkCode);
+        if (command != 0) {
+            const auto binding = ShortcutCaptureHelper::mapWindowsAppCommandEvent(command);
+            if (ShortcutCaptureHelper::publishNativeShortcut(binding)) return 1;
+        }
+    }
     return CallNextHookEx(nativeKeyboardHook, code, wParam, lParam);
 }
 #endif
