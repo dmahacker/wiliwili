@@ -60,6 +60,10 @@ constexpr int SDL_SCANCODE_AC_FORWARD = 271;
 constexpr int SDL_SCANCODE_VOLUMEUP = 128;
 constexpr int SDL_SCANCODE_VOLUMEDOWN = 129;
 
+// On Windows these names are provided as macros by <windows.h> (winuser.h),
+// so only define our own fallbacks when that header isn't in play. The values
+// intentionally match the real APPCOMMAND_* constants.
+#ifndef _WIN32
 constexpr int APPCOMMAND_BROWSER_BACKWARD = 1;
 constexpr int APPCOMMAND_BROWSER_FORWARD = 2;
 constexpr int APPCOMMAND_VOLUME_MUTE = 8;
@@ -71,6 +75,7 @@ constexpr int APPCOMMAND_MEDIA_STOP = 13;
 constexpr int APPCOMMAND_MEDIA_PLAY_PAUSE = 14;
 constexpr int APPCOMMAND_MEDIA_PLAY = 46;
 constexpr int APPCOMMAND_MEDIA_PAUSE = 47;
+#endif
 
 #ifdef _WIN32
 HHOOK nativeKeyboardHook = nullptr;
