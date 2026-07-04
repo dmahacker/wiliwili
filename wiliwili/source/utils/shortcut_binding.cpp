@@ -4,6 +4,9 @@
 
 #include "utils/shortcut_binding.hpp"
 
+#include <cctype>
+#include <limits>
+
 #include <pystring.h>
 
 #include "utils/base_shortcut_helper.hpp"
@@ -82,6 +85,102 @@ static std::string keyDisplayName(brls::BrlsKeyboardScancode code) {
     }
 }
 
+static bool parseNonNegativeInt(const std::string& value, int& result) {
+    if (value.empty()) return false;
+
+    int parsed = 0;
+    for (char c : value) {
+        if (!std::isdigit(static_cast<unsigned char>(c))) return false;
+        const int digit = c - '0';
+        if (parsed > (std::numeric_limits<int>::max() - digit) / 10) return false;
+        parsed = parsed * 10 + digit;
+    }
+
+    result = parsed;
+    return true;
+}
+
+static std::string nativeKeyboardDisplayName(int nativeCode) {
+    switch (nativeCode) {
+        case 128:
+            return "Volume Up";
+        case 129:
+            return "Volume Down";
+        case 258:
+            return "Media Next";
+        case 259:
+            return "Media Previous";
+        case 260:
+            return "Media Stop";
+        case 261:
+            return "Media Play/Pause";
+        case 262:
+            return "Mute";
+        case 270:
+            return "Browser Back";
+        case 271:
+            return "Browser Forward";
+        default:
+            return "Scancode " + std::to_string(nativeCode);
+    }
+}
+
+static std::string appCommandDisplayName(int command) {
+    switch (command) {
+        case 1:
+            return "Browser Back";
+        case 2:
+            return "Browser Forward";
+        case 8:
+            return "Mute";
+        case 9:
+            return "Volume Down";
+        case 10:
+            return "Volume Up";
+        case 11:
+            return "Media Next";
+        case 12:
+            return "Media Previous";
+        case 13:
+            return "Media Stop";
+        case 14:
+            return "Media Play/Pause";
+        case 46:
+            return "Media Play";
+        case 47:
+            return "Media Pause";
+        default:
+            return "App Command " + std::to_string(command);
+    }
+}
+
+static ShortcutBinding nativeKeyboardBinding(int nativeCode) {
+    ShortcutBinding binding;
+    binding.device     = ShortcutDevice::Keyboard;
+    binding.nativeCode = nativeCode;
+    binding.display    = nativeKeyboardDisplayName(nativeCode);
+    return binding;
+}
+
+static ShortcutBinding appCommandBinding(int command) {
+    ShortcutBinding binding;
+    binding.device     = ShortcutDevice::WindowsAppCommand;
+    binding.nativeCode = command;
+    binding.display    = appCommandDisplayName(command);
+    return binding;
+}
+
+static ShortcutBinding parseNativeBinding(const std::string& config) {
+    int nativeCode = 0;
+    if (config.rfind("scancode-", 0) == 0 && parseNonNegativeInt(config.substr(9), nativeCode)) {
+        return nativeKeyboardBinding(nativeCode);
+    }
+    if (config.rfind("appcommand-", 0) == 0 && parseNonNegativeInt(config.substr(11), nativeCode)) {
+        return appCommandBinding(nativeCode);
+    }
+    return {};
+}
+
 static void appendDisplayPart(std::string& display, const std::string& part) {
     if (!display.empty()) display += "+";
     display += part;
@@ -115,6 +214,9 @@ static std::string keyConfigName(const brls::BrlsKeyCombination& key) {
 std::string ShortcutBinding::format() const { return ShortcutBindingHelper::formatBinding(*this); }
 
 ShortcutBinding ShortcutBindingHelper::parseBinding(const std::string& config) {
+    ShortcutBinding nativeBinding = parseNativeBinding(config);
+    if (nativeBinding.device != ShortcutDevice::Unsupported) return nativeBinding;
+
     ShortcutBinding binding;
     binding.key = ShortcutHelper::parseKey(config);
     if (binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN) return binding;
@@ -162,7 +264,13 @@ std::string ShortcutBindingHelper::formatBinding(const ShortcutBinding& binding)
 }
 
 std::string ShortcutBindingHelper::bindingConfigKey(const ShortcutBinding& binding) {
+    if (binding.device == ShortcutDevice::WindowsAppCommand && binding.nativeCode > 0) {
+        return "appcommand-" + std::to_string(binding.nativeCode);
+    }
     if (binding.device != ShortcutDevice::Keyboard) return {};
+    if (binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN && binding.nativeCode > 0) {
+        return "scancode-" + std::to_string(binding.nativeCode);
+    }
 
     std::string config;
     if (binding.key.mod & brls::BRLS_KBD_MODIFIER_CTRL) appendConfigPart(config, "ctrl");

@@ -92,6 +92,13 @@ brls::BrlsKeyCombination shortcutEditorCurrentKey(ShortcutAction action) {
 }
 
 ShortcutBinding shortcutEditorCurrentBinding(ShortcutAction action) {
+    SettingItem item{};
+    if (shortcutEditorSettingItem(action, item)) {
+        const std::string config = ProgramConfig::instance().getSettingItem(item, shortcutEditorDefaultConfigKey(action));
+        ShortcutBinding binding = ShortcutBindingHelper::parseBinding(config);
+        if (binding.device != ShortcutDevice::Unsupported) return binding;
+    }
+
     ShortcutBinding binding;
     binding.key = shortcutEditorCurrentKey(action);
     if (binding.key.code != brls::BRLS_KBD_KEY_UNKNOWN) {
