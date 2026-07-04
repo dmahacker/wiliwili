@@ -61,5 +61,19 @@ int main() {
     ShortcutCaptureHelper::stopCapture();
     ok &= expect(callbackCalled, "Native capture callback should receive browser back binding while capturing");
 
+    ShortcutAction dispatchedAction = ShortcutAction::Confirm;
+    bool runtimeDispatched = false;
+    ShortcutCaptureHelper::setNativeDispatchCallback([&](ShortcutAction action) {
+        dispatchedAction = action;
+        runtimeDispatched = true;
+        return true;
+    });
+    ShortcutCaptureHelper::setNativeShortcut(ShortcutAction::Back, appCommandBack);
+    ok &= expect(ShortcutCaptureHelper::publishNativeShortcut(appCommandBack),
+                 "Browser Back native shortcut should be consumed at runtime");
+    ok &= expect(runtimeDispatched, "Browser Back native shortcut should dispatch an action at runtime");
+    ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Back native shortcut should dispatch Back action");
+    ShortcutCaptureHelper::clearNativeShortcuts();
+
     return ok ? 0 : 1;
 }
