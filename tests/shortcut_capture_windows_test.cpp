@@ -19,7 +19,13 @@ bool expect(bool condition, const std::string& message) {
 }
 }
 
+namespace brls {
+void Application::addToWatchedKeys(const BrlsKeyCombination) {}
+}
+
 brls::BrlsKeyCombination ShortcutHelper::parseKey(const std::string& config) {
+    if (config == "ctrl-r") return brls::BrlsKeyCombination{brls::BRLS_KBD_KEY_R, brls::BRLS_KBD_MODIFIER_CTRL};
+    if (config == "ctrl-f") return brls::BrlsKeyCombination{brls::BRLS_KBD_KEY_F, brls::BRLS_KBD_MODIFIER_CTRL};
     if (config == "escape") return brls::BrlsKeyCombination{brls::BRLS_KBD_KEY_ESCAPE};
     return brls::BrlsKeyCombination{brls::BRLS_KBD_KEY_UNKNOWN};
 }
@@ -100,6 +106,13 @@ int main() {
     ok &= expect(dispatchedAction == ShortcutAction::Back, "Browser Home native shortcut should dispatch Back action");
     ShortcutCaptureHelper::clearNativeShortcuts();
 
+    ok &= expect(ShortcutBindingHelper::applyBinding(ShortcutAction::Refresh, appCommandHome),
+                 "Native Browser Home binding should apply to Refresh");
+    ok &= expect(ShortcutHelper::getRefresh().code == brls::BRLS_KBD_KEY_R,
+                 "Native Refresh binding should keep Refresh keyboard fallback");
+    ok &= expect(ShortcutHelper::getRefresh().mod == brls::BRLS_KBD_MODIFIER_CTRL,
+                 "Native Refresh binding should keep Ctrl modifier fallback");
+
     const unsigned char rawHomePress[] = {0x02, 0xCF, 0x00};
     const unsigned char rawHomeRelease[] = {0x02, 0x00, 0x00};
     const unsigned char rawShortReport[] = {0x02, 0xCF};
@@ -118,6 +131,13 @@ int main() {
     ok &= expect(parsedRawHid.nativeCode == RAW_HID_CONSUMER_CF,
                  "Raw HID config should preserve report id and usage");
     ok &= expect(parsedRawHid.display == "HID Consumer 0x00CF", "Raw HID config should restore HID display");
+
+    ok &= expect(ShortcutBindingHelper::applyBinding(ShortcutAction::Search, rawHidKey),
+                 "Raw HID binding should apply to Search");
+    ok &= expect(ShortcutHelper::getSearch().code == brls::BRLS_KBD_KEY_F,
+                 "Raw HID Search binding should keep Search keyboard fallback");
+    ok &= expect(ShortcutHelper::getSearch().mod == brls::BRLS_KBD_MODIFIER_CTRL,
+                 "Raw HID Search binding should keep Ctrl modifier fallback");
 
     const auto rawRelease = ShortcutCaptureHelper::mapWindowsRawInputHidReport(rawHomeRelease, sizeof(rawHomeRelease));
     ok &= expect(rawRelease.device == ShortcutDevice::Unsupported, "Raw HID Browser Home release should be ignored");

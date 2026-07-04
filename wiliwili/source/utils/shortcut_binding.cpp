@@ -213,6 +213,76 @@ static ShortcutBinding parseNativeBinding(const std::string& config) {
     return {};
 }
 
+static bool isNativeShortcutBinding(const ShortcutBinding& binding) {
+    if (binding.device == ShortcutDevice::WindowsAppCommand || binding.device == ShortcutDevice::WindowsRawHid) return true;
+    return binding.device == ShortcutDevice::Keyboard && binding.key.code == brls::BRLS_KBD_KEY_UNKNOWN &&
+           binding.nativeCode > 0;
+}
+
+static std::string defaultKeyboardConfig(ShortcutAction action) {
+    switch (action) {
+        case ShortcutAction::Confirm:
+            return "enter";
+        case ShortcutAction::Back:
+            return "escape";
+        case ShortcutAction::NavigateUp:
+            return "up";
+        case ShortcutAction::NavigateDown:
+            return "down";
+        case ShortcutAction::NavigateLeft:
+            return "left";
+        case ShortcutAction::NavigateRight:
+            return "right";
+        case ShortcutAction::Refresh:
+#ifdef __APPLE__
+            return "meta-r";
+#else
+            return "ctrl-r";
+#endif
+        case ShortcutAction::Search:
+#ifdef __APPLE__
+            return "meta-f";
+#else
+            return "ctrl-f";
+#endif
+        case ShortcutAction::Last:
+            return "pgup";
+        case ShortcutAction::Next:
+            return "pgdn";
+        case ShortcutAction::LastSub:
+            return "shift-pgup";
+        case ShortcutAction::NextSub:
+            return "shift-pgdn";
+        case ShortcutAction::VolumeUp:
+            return "0";
+        case ShortcutAction::VolumeDown:
+            return "9";
+        case ShortcutAction::VideoProfile:
+            return "f1";
+        case ShortcutAction::Danmaku:
+            return "d";
+        case ShortcutAction::Playlist:
+            return "f4";
+        case ShortcutAction::Forward:
+            return "]";
+        case ShortcutAction::Rewind:
+            return "[";
+        case ShortcutAction::Setting:
+            return "f5";
+        case ShortcutAction::VideoQuality:
+            return "f2";
+        case ShortcutAction::VideoSpeed:
+            return "f3";
+        case ShortcutAction::VideoSpeedUp:
+            return "p";
+        case ShortcutAction::VideoOsd:
+            return "o";
+        case ShortcutAction::VideoPause:
+            return "space";
+    }
+    return {};
+}
+
 static void appendDisplayPart(std::string& display, const std::string& part) {
     if (!display.empty()) display += "+";
     display += part;
@@ -326,7 +396,10 @@ brls::BrlsKeyCombination ShortcutBindingHelper::toBrlsKeyCombination(const Short
 }
 
 bool ShortcutBindingHelper::applyBinding(ShortcutAction action, const ShortcutBinding& binding) {
-    const std::string config = bindingConfigKey(binding);
+    const std::string savedConfig = bindingConfigKey(binding);
+    if (savedConfig.empty()) return false;
+
+    const std::string config = isNativeShortcutBinding(binding) ? defaultKeyboardConfig(action) : savedConfig;
     if (config.empty()) return false;
 
     switch (action) {
